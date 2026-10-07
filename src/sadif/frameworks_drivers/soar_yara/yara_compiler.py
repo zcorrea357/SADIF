@@ -68,10 +68,14 @@ class SoarYaraCompiler:
 
     def match_text(self, text):
         compiled_rules = self.compile_rules()
+        if compiled_rules is None:  # erro de sintaxe ao compilar as regras
+            return []
         matches = compiled_rules.match(data=text)
         return self.extract_match_details(matches)
 
     def match_file(self, file_path):
         compiled_rules = self.compile_rules()
+        if compiled_rules is None:  # erro de sintaxe ao compilar as regras
+            return []
         matches = compiled_rules.match(filepath=file_path)
         return self.extract_match_details(matches)

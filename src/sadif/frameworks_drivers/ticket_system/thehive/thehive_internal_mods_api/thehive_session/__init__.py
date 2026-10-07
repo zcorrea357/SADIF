@@ -63,20 +63,19 @@ class SessionThehive:
                 json=json_data,
                 auth=self.auth,
             )
-            response.raise_for_status()
-            status_code_request = (
-                response.status_code
-            )  # Assuming 'response' is an instance of a request's Response object
-            try:
-                json_data = response.json()
-                return json_data, status_code_request
-            except ValueError:  # Raised when the response isn't a valid JSON
-                return response.text, status_code_request
-
         except requests.RequestException as e:
+            # Erro de rede (conexão recusada, timeout...): não há resposta HTTP
             print(f"Request error: {e}")
-        except ValueError:
-            print(f"Error decoding JSON from response. URL: {url}")
+            return str(e), 0
+
+        # Respostas de erro (4xx/5xx) também retornam (corpo, status) para que os
+        # chamadores possam desempacotar a tupla e checar o status_code.
+        if not response.ok:
+            print(f"Request error: {response.status_code} {response.reason} for url: {url}")
+        try:
+            return response.json(), response.status_code
+        except ValueError:  # Raised when the response isn't a valid JSON
+            return response.text, response.status_code
 
     def get_status(self) -> tuple[dict | str, int]:
         return self.request("status")

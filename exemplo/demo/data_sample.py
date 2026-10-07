@@ -16,7 +16,7 @@ session_manager = SessionManager()
 session_with_basic_auth = session_manager.create_session(basic_auth_strategy)
 
 # Criar uma sessão com autenticação bearer
-session_with_bearer_auth = session_manager.create_session()
+session_with_bearer_auth = session_manager.create_session(bearer_auth_strategy)
 a = session_with_bearer_auth.get("https://httpbin.org/bearer")
 print(a.status_code)
 # Aqui você pode usar session_with_basic_auth e session_with_bearer_auth para fazer requisições

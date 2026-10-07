@@ -1,11 +1,13 @@
 from pymongo import MongoClient
-from soar.clientmanager.client_data_manager import ClientManager
-from soar.utils.generete_string.random_string_generator import RandomStringGenerator
+
+from sadif.clientmanager.client_data_manager import ClientManager
+from sadif.config.soar_config import SadifConfiguration
+from sadif.utils.generete_string.random_string_generator import RandomStringGenerator
 
 if __name__ == "__main__":
     randstr = RandomStringGenerator()
-    db_real = MongoClient("")
-    # Criar uma instância de ClientManager usando o mock_client
+    config = SadifConfiguration()
+    db_real = MongoClient(config.get_configuration("MONGODB_URL"))
     manager = ClientManager(db_client=db_real)
     for i in range(10):
         print(

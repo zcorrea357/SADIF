@@ -1,5 +1,5 @@
 # Import the RandomStringGenerator class from the specified module
-from sadif.utils.generate_string.random_string_generator import RandomStringGenerator
+from sadif.utils.generete_string.random_string_generator import RandomStringGenerator
 
 # Create an instance of RandomStringGenerator with a specified length of 10 characters
 random_string_gen = RandomStringGenerator(string_length=10)

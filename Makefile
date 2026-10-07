@@ -10,7 +10,7 @@ endif
 
 .PHONY: help
 help: ## Lista os comandos disponíveis
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: setup
 setup: ## Instala dependências, hooks do pre-commit e cria o .env
@@ -39,6 +39,14 @@ infra-ps: .env ## Mostra o estado dos serviços
 .PHONY: infra-logs
 infra-logs: .env ## Acompanha os logs dos serviços
 	$(COMPOSE) --profile tools --profile thehive logs -f
+
+.PHONY: examples-bootstrap
+examples-bootstrap: .env ## Configura o TheHive (API key) e o repositório local de clientes para os exemplos
+	./scripts/bootstrap-examples.sh
+
+.PHONY: examples
+examples: .env ## Roda todos os exemplos (requer infra-up-all e examples-bootstrap)
+	./scripts/run-examples.sh
 
 .PHONY: test
 test: ## Roda os testes com cobertura

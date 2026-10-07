@@ -1,11 +1,13 @@
 from pymongo import MongoClient
-from soar.config.soar_config import SoarConfiguration
-from soar.frameworks_drivers.soar_yara.yara_compiler import SoarYaraCompiler
+
+from sadif.config.soar_config import SadifConfiguration
+from sadif.frameworks_drivers.soar_yara.yara_compiler import SoarYaraCompiler
 
 if __name__ == "__main__":
-    config = SoarConfiguration()
+    config = SadifConfiguration()
     db_url = config.get_configuration("MONGODB_URL")
     db_real = MongoClient(db_url)
-    exporter = SoarYaraCompiler(db_real)
-    a = exporter.match_text("paul.canarin@hdi.com.br")
-    print(a)
+    compiler = SoarYaraCompiler(db_real)
+    # Texto que casa com a regra InternalMonitoramentoLeak04 (chave da API do Shodan)
+    matches = compiler.match_text("config: shodan_api_key: abc123XYZ")
+    print(matches)

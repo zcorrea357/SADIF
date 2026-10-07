@@ -143,7 +143,7 @@ class ClientManager:
             A message indicating the outcome of the update operation.
 
         """
-        if module_name != self.soar_internal_config.get_configuration("CLIENTS_MODULES"):
+        if module_name not in self.soar_internal_config.get_configuration("CLIENTS_MODULES"):
             self.log_manager.log(
                 "error",
                 f"Módulo '{module_name}' não é permitido.",

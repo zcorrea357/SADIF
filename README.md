@@ -30,12 +30,31 @@ make test          # testes com cobertura
 
 | Serviço        | Comando             | Endereço                         | Observação |
 |----------------|---------------------|----------------------------------|------------|
-| MongoDB 7      | `make infra-up`     | `mongodb://localhost:27017`      | Cria os bancos `Modules`, `YaraRules`, `Clients`, `Crawler` na 1ª inicialização |
+| MongoDB 7      | `make infra-up`     | `mongodb://localhost:27017`      | Cria as coleções do banco `Crawler` na 1ª inicialização |
 | mongo-express  | `make infra-up-all` | <http://localhost:8081>          | Login em `MONGO_EXPRESS_USER`/`MONGO_EXPRESS_PASSWORD` |
 | TheHive 5      | `make infra-up-all` | <http://localhost:9000>          | Usa Cassandra + Elasticsearch; login inicial `admin@thehive.local` / `secret` (troque) |
 
 Outros comandos: `make infra-ps`, `make infra-logs`, `make infra-down` (mantém os dados) e
 `make infra-reset` (apaga os volumes). O stack completo precisa de ~4 GB de RAM livres.
+
+## Exemplos (`example/` e `exemplo/`)
+
+Os exemplos usam o MongoDB e o TheHive locais e os repositórios públicos
+[`crawler_monitoring`](https://github.com/florestleaks/crawler_monitoring) e
+[`client_monitoring_yara_rules`](https://github.com/florestleaks/client_monitoring_yara_rules)
+(clonados automaticamente pelo `GitManager`).
+
+```bash
+make infra-up-all        # MongoDB + TheHive
+make examples-bootstrap  # cria org/usuário/API key no TheHive e o repositório local de clientes
+make examples            # roda todos os exemplos em ordem e mostra um resumo (logs em reports/examples/)
+```
+
+O repositório de clientes (`client_monitoring`) é privado. O `make examples-bootstrap` cria um
+repositório git local em `.local/client_monitoring` com o cliente `Internal`
+(`infra/fixtures/client_monitoring/`), dono das regras `InternalMonitoramento*` do repositório de
+regras YARA, e aponta `SADIF_GIT_REPO_CLIENT_MONITORING_URL` para ele. Para rodar um exemplo só:
+`./scripts/run-examples.sh exemplo/yara_demo/yara_import.py`.
 
 ## Configuração
 

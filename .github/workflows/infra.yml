@@ -11,6 +11,8 @@ on:
       - .env.example
       - Makefile
       - scripts/setup.sh
+      - scripts/bootstrap-examples.sh
+      - scripts/run-examples.sh
 
 jobs:
   mongodb:
@@ -31,10 +33,10 @@ jobs:
       - name: Start MongoDB
         run: make infra-up
 
-      - name: Check databases were initialised
+      - name: Check crawler collections were initialised
         run: |
           docker compose -f infra/docker-compose.yml --env-file .env exec -T mongodb \
-            mongosh --quiet --eval 'const n = db.adminCommand({listDatabases: 1}).databases.map(d => d.name); ["Modules","YaraRules","Clients","Crawler"].forEach(d => { if (!n.includes(d)) { throw new Error("missing " + d) } }); print("ok")'
+            mongosh --quiet --eval 'const n = db.getSiblingDB("Crawler").getCollectionNames(); ["crawler_with_credential_onion","crawler_without_credential_onion","crawler_with_credential_web","crawler_without_credential_web"].forEach(c => { if (!n.includes(c)) { throw new Error("missing " + c) } }); print("ok")'
 
       - name: Stop MongoDB
         if: always()
