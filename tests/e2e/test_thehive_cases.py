@@ -108,7 +108,7 @@ def test_session_default_base_url_with_trailing_slash_works(thehive_session):
     assert SessionThehive().base_url == "http://localhost:9000/api/"
 
 
-def test_session_basic_auth_admin_and_wrong_password():
+def test_session_basic_auth_admin_and_wrong_password(requires_thehive):
     session = SessionThehive(base_url=THEHIVE_URL)
     session.set_basic_auth("admin@thehive.local", "secret")
     user, status = session.request("v1/user/current")
@@ -148,7 +148,7 @@ def test_session_api_key_resets_previous_auth(thehive_session):
     assert status == 200
 
 
-def test_session_invalid_api_key_returns_401():
+def test_session_invalid_api_key_returns_401(requires_thehive):
     session = SessionThehive(base_url=THEHIVE_URL)
     session.set_api_key("invalid-key")
     body, status = session.request("case")
@@ -303,7 +303,7 @@ def test_create_case_validation_errors(thehive_session, e2e_id, field, value):
     assert _find_by_title(thehive_session, f"{e2e_id} invalid") == []
 
 
-def test_create_case_unauthenticated_returns_error_status(e2e_id):
+def test_create_case_unauthenticated_returns_error_status(requires_thehive, e2e_id):
     session = SessionThehive(base_url=THEHIVE_URL)
     session.set_api_key("invalid-key")
     response, status = CreateCase(session).create(
@@ -499,7 +499,7 @@ def test_case_lister_lists_all_pages_and_filters_by_tag(thehive_session, cases, 
     assert lister.list_cases_by_tag(f"{e2e_id}-missing") == []
 
 
-def test_case_lister_raises_on_auth_error():
+def test_case_lister_raises_on_auth_error(requires_thehive):
     session = SessionThehive(base_url=THEHIVE_URL)
     session.set_api_key("invalid-key")
     lister = CaseLister(session)

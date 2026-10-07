@@ -106,6 +106,16 @@ def sadif_databases(
 
 
 @pytest.fixture()
+def requires_thehive():
+    """Pula o teste quando o TheHive local não está acessível."""
+    if not _thehive_available():
+        pytest.skip(
+            f"TheHive indisponível em {THEHIVE_URL} ou sem SADIF_THEHIVE_API_SERVICE "
+            "(rode 'make infra-up-all' e 'make examples-bootstrap')"
+        )
+
+
+@pytest.fixture()
 def thehive_session():
     """Sessão autenticada no TheHive local (pula se indisponível ou sem API key)."""
     # Import tardio: importar o sadif ao carregar o conftest desligaria o typeguard
