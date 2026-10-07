@@ -75,8 +75,9 @@ class Task:
             The response from the POST request.
         """
 
-        # Forming the endpoint using the provided caseId
-        endpoint = f"case/{caseId}/task"
+        # API v1: a v0 ("case/{id}/task") ignora mandatory e assignee. (O TheHive 5 ignora
+        # "order" na criação nas duas APIs; use update_task para definir a posição.)
+        endpoint = f"v1/case/{caseId}/task"
 
         # Building the request body
         data = {"title": title}
@@ -93,7 +94,7 @@ class Task:
             data["startDate"] = startDate
         if endDate:
             data["endDate"] = endDate
-        if order:
+        if order is not None:  # order=0 is a valid position
             data["order"] = order
         if dueDate:
             data["dueDate"] = dueDate
@@ -207,7 +208,7 @@ class Task:
             data["startDate"] = startDate
         if endDate:
             data["endDate"] = endDate
-        if order:
+        if order is not None:  # order=0 is a valid position
             data["order"] = order
         if dueDate:
             data["dueDate"] = dueDate

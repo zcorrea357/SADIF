@@ -71,3 +71,6 @@ __pycache__/
 
 # VS Code
 .vscode/
+
+# Dados locais (scripts/bootstrap-examples.sh)
+.local/

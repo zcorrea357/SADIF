@@ -3,6 +3,14 @@ from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.th
 )
 
 
+def _check_message(message) -> None:
+    # O TheHive aceita (e grava) comentários vazios; eles não têm utilidade e indicam
+    # um template/markdown que não foi preenchido.
+    if not isinstance(message, str) or not message.strip():
+        msg = f"Comment message must be a non-empty string, got {message!r}"
+        raise ValueError(msg)
+
+
 class CaseComment:
     """
     A utility class to manage comments related to cases and alerts in TheHive.
@@ -54,7 +62,13 @@ class CaseComment:
         -------
         tuple
             The response and status code of the create request.
+
+        Raises
+        ------
+        ValueError
+            If message is empty or blank.
         """
+        _check_message(message)
         endpoint = f"v1/case/{case_id}/comment"
         data = {"message": message}
         return self.session.request(endpoint, method="POST", json_data=data)
@@ -74,8 +88,14 @@ class CaseComment:
         -------
         tuple
             The response and status code of the create request.
+
+        Raises
+        ------
+        ValueError
+            If message is empty or blank.
         """
-        endpoint = f"v1/alert{alert_id}/comment"
+        _check_message(message)
+        endpoint = f"v1/alert/{alert_id}/comment"
         data = {"message": message}
         return self.session.request(endpoint, method="POST", json_data=data)
 
@@ -111,7 +131,13 @@ class CaseComment:
         -------
         tuple
             The response and status code of the update request
+
+        Raises
+        ------
+        ValueError
+            If message is empty or blank.
         """
+        _check_message(message)
         endpoint = f"v1/comment/{comment_id}"
         data = {"message": message}
         return self.session.request(endpoint, method="PATCH", json_data=data)

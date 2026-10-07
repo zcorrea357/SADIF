@@ -17,6 +17,7 @@ class SessionThehive:
         self.headers: dict[str, str] = {}  # Use built-in dict instead of typing.Dict
         self.cookies: dict[str, str] = {}  # Use built-in dict instead of typing.Dict
         self.auth: HTTPBasicAuth | None = None  # Keep using HTTPBasicAuth from requests
+        self.timeout: float = 60  # segundos; evita que uma chamada fique pendurada para sempre
 
     def _reset_auth(self) -> None:
         """Reset the authentication information (both headers and cookies)."""
@@ -52,8 +53,10 @@ class SessionThehive:
 
     def request(
         self, endpoint: str, method: str = "GET", json_data: dict | None = None
-    ) -> tuple[dict | str, int]:
-        url = f"{self.base_url}/{endpoint}"
+    ) -> tuple[dict | list | str, int]:
+        # Evita "//" quando base_url termina com "/" (ex.: o default "http://localhost:9000/api/"),
+        # o que faz o TheHive responder 404.
+        url = f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
         try:
             response = requests.request(
                 method,
@@ -62,24 +65,25 @@ class SessionThehive:
                 cookies=self.cookies,
                 json=json_data,
                 auth=self.auth,
+                timeout=self.timeout,
             )
-            response.raise_for_status()
-            status_code_request = (
-                response.status_code
-            )  # Assuming 'response' is an instance of a request's Response object
-            try:
-                json_data = response.json()
-                return json_data, status_code_request
-            except ValueError:  # Raised when the response isn't a valid JSON
-                return response.text, status_code_request
-
         except requests.RequestException as e:
+            # Erro de rede (conexão recusada, timeout...): não há resposta HTTP
             print(f"Request error: {e}")
-        except ValueError:
-            print(f"Error decoding JSON from response. URL: {url}")
+            return str(e), 0
 
-    def get_status(self) -> tuple[dict | str, int]:
+        # Respostas de erro (4xx/5xx) também retornam (corpo, status) para que os
+        # chamadores possam desempacotar a tupla e checar o status_code.
+        if not response.ok:
+            print(f"Request error: {response.status_code} {response.reason} for url: {url}")
+        try:
+            return response.json(), response.status_code
+        except ValueError:  # Raised when the response isn't a valid JSON
+            return response.text, response.status_code
+
+    def get_status(self) -> tuple[dict | list | str, int]:
         return self.request("status")
 
-    def create_alert(self, data: dict) -> tuple[dict | str, int]:
-        return self.request("alert", method="POST", json_data=data)
+    def create_alert(self, data: dict) -> tuple[dict | list | str, int]:
+        # v1: o endpoint v0 "alert" do TheHive 5 descarta summary, assignee, observables e procedures
+        return self.request("v1/alert", method="POST", json_data=data)

@@ -41,6 +41,9 @@ class MarkdownStringGenerator:
         string_length : int
             The default length for generated random strings. Defaults to 10.
         """
+        if not isinstance(string_length, int) or string_length < 1:
+            error_message = "O tamanho da string deve ser um inteiro positivo."
+            raise ValueError(error_message)
         self.string_length = string_length
 
     def _random_string(self, length: int) -> str:
@@ -163,7 +166,7 @@ class MarkdownStringGenerator:
         ValueError
             If the number of words is not a positive integer.
         """
-        if num_words < 1:
+        if not isinstance(num_words, int) or num_words < 1:
             msg = "Number of words must be a positive integer."
             raise ValueError(msg)
         words = [self._random_string(random.randint(5, 10)) for _ in range(num_words)]

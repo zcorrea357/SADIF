@@ -19,6 +19,20 @@ class TestClientManager(unittest.TestCase):
         )
         self.assertIn("Erro: Módulo 'NotAllowedModule' não é permitido.", result)
 
+    def test_update_module_info_allowed_module(self):
+        """Test updating module info with a module listed in CLIENTS_MODULES."""
+        collection_name = self.client_manager._generate_collection_name("AllowedClient")
+        self.client_manager.db[collection_name].insert_one(
+            {"client_name": "AllowedClient", "company": "Company", "ciid": "CIID-1", "Modules": {}}
+        )
+        result = self.client_manager.update_module_info(
+            "AllowedClient", "ModuloA", {"info": "test"}
+        )
+        self.assertEqual("Informações do módulo 'ModuloA' atualizadas com sucesso.", result)
+        self.assertEqual(
+            {"ModuloA": {"info": "test"}}, self.client_manager.find_client_modules("AllowedClient")
+        )
+
     # Add more tests for other methods...
 
 

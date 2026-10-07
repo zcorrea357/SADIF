@@ -1,0 +1,43 @@
+name: Infra
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    paths:
+      - infra/**
+      - .env.example
+      - Makefile
+      - scripts/setup.sh
+      - scripts/bootstrap-examples.sh
+      - scripts/run-examples.sh
+
+jobs:
+  mongodb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env
+        run: |
+          cp .env.example .env
+          sed -i "s/^THEHIVE_SECRET=.*/THEHIVE_SECRET=$(openssl rand -hex 32)/" .env
+
+      - name: Validate compose file
+        run: docker compose -f infra/docker-compose.yml --env-file .env --profile tools --profile thehive config -q
+
+      - name: Start MongoDB
+        run: make infra-up
+
+      - name: Check crawler collections were initialised
+        run: |
+          docker compose -f infra/docker-compose.yml --env-file .env exec -T mongodb \
+            mongosh --quiet --eval 'const n = db.getSiblingDB("Crawler").getCollectionNames(); ["crawler_with_credential_onion","crawler_without_credential_onion","crawler_with_credential_web","crawler_without_credential_web"].forEach(c => { if (!n.includes(c)) { throw new Error("missing " + c) } }); print("ok")'
+
+      - name: Stop MongoDB
+        if: always()
+        run: make infra-reset

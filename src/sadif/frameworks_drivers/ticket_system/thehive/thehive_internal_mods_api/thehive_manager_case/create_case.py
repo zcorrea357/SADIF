@@ -1,4 +1,4 @@
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_datatype import (
     CaseDataType,
 )
@@ -42,8 +42,24 @@ class CreateCase:
         bool
             True if the case exists, False otherwise.
         """
-        response, _ = self.session.request("case", method="GET")
-        return any(case["title"] == title for case in response)
+        # GET "case" (API v0) devolve só a primeira página (10 casos), então casos
+        # antigos com o mesmo título passariam despercebidos: filtra pelo título na API v1.
+        query = {
+            "query": [
+                {"_name": "listCase"},
+                {"_name": "filter", "_eq": {"_field": "title", "_value": title}},
+            ]
+        }
+        response, _ = self.session.request("v1/query", method="POST", json_data=query)
+        if not isinstance(response, list):
+            self.logmanager.log(
+                "warning",
+                f"Could not check if a case titled {title!r} exists: {response}",
+                category="case_creation",
+                task_state="failed",
+            )
+            return False
+        return any(isinstance(case, dict) and case.get("title") == title for case in response)
 
     def _validate_inputs(self, case_data: CaseDataType):
         """
@@ -63,7 +79,8 @@ class CreateCase:
         self._validate_string_length(case_data.title, 1, 512, "title")
         self._validate_string_length(case_data.description, 0, 1048576, "description")
         self._validate_in_list(case_data.severity, [1, 2, 3, 4], "severity")
-        self._validate_in_list(case_data.tlp, [0, 1, 2, 3, 4], "tlp")
+        # POST /api/case (API v0) aceita só TLP 0-3 (White, Green, Amber, Red): 4 dá 400
+        self._validate_in_list(case_data.tlp, [0, 1, 2, 3], "tlp")
         self._validate_in_list(case_data.pap, [0, 1, 2, 3], "pap")
         self._validate_string_length(case_data.status, 1, 64, "status")
 
@@ -113,7 +130,7 @@ class CreateCase:
             msg = f"Invalid {name} value: {value}"
             raise ValueError(msg)
 
-    def create(self, case_data: CaseDataType) -> str | tuple[dict, int]:
+    def create(self, case_data: CaseDataType) -> str | tuple[dict | list | str, int]:
         """
         Create a new case using provided data.
 
@@ -162,16 +179,31 @@ class CreateCase:
                 )
                 return "A case with the same title already exists"
             else:
+                # Valores "vazios" padrão do CaseDataType (startDate=0 -> 1970, assignee="")
+                # não são enviados, para o TheHive aplicar os próprios defaults.
+                if not data["startDate"]:
+                    data["startDate"] = None
+                if not data["assignee"]:
+                    data["assignee"] = None
                 data = {k: v for k, v in data.items() if v is not None}
                 response, status_code_request = self.session.request(
                     "case", method="POST", json_data=data
                 )
-                self.logmanager.log(
-                    "info",
-                    f"Case created successfully: {case_data.title}",
-                    category="case_creation",
-                    task_state="success",
-                )
+                if 200 <= status_code_request < 300:
+                    self.logmanager.log(
+                        "info",
+                        f"Case created successfully: {case_data.title}",
+                        category="case_creation",
+                        task_state="success",
+                    )
+                else:
+                    self.logmanager.log(
+                        "warning",
+                        f"Failed to create case {case_data.title}. "
+                        f"Status code: {status_code_request}",
+                        category="case_creation",
+                        task_state="failed",
+                    )
 
                 return response, status_code_request
         except ValueError as e:

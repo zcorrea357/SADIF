@@ -1,8 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
+from requests import RequestException
 
 from sadif.frameworks_drivers.crawler.base_crawler import BaseCrawler
 
@@ -69,6 +71,8 @@ class PastebinPLCrawler(BaseCrawler):
             MongoDB client for storing crawl results.
         """
         super().__init__(base_url, depth, proxy, timeout, db_client)
+        self.found_pastes: list[dict[str, str]] = []
+        self.paste_analysis: dict[str, list[dict[str, Any]]] = {}
 
     def extract_pastes(self, content: bytes, current_url: str) -> list[dict[str, str]]:
         """
@@ -84,16 +88,45 @@ class PastebinPLCrawler(BaseCrawler):
         Returns
         -------
         List[Dict[str, str]]
-            A list of dictionaries, each containing the 'url' and 'title' of a paste.
+            A list of dictionaries, each containing the 'url' and 'title' of a paste
+            (each paste URL appears only once).
         """
         soup = BeautifulSoup(content, "html.parser")
         pastes = []
+        seen = set()
         for paste_link in soup.find_all("a", href=True):
             if "/view/" in paste_link["href"]:  # Identify paste links
                 full_url = self.normalize_link(paste_link["href"], current_url)
+                if full_url in seen:
+                    continue
+                seen.add(full_url)
                 title = paste_link.text.strip()
                 pastes.append({"url": full_url, "title": title})
         return pastes
+
+    def extract_list_pages(self, content: bytes, current_url: str) -> set[str]:
+        """
+        Extracts the links to other list pages (e.g. pagination) of the same site.
+
+        Parameters
+        ----------
+        content : bytes
+            The HTML content of the page.
+        current_url : str
+            The URL of the page being processed.
+
+        Returns
+        -------
+        Set[str]
+            URLs on the same host as ``base_url`` whose path is the list path.
+        """
+        base = urlparse(self.base_url)
+        list_pages = set()
+        for link in self.extract_links(content, current_url):
+            parsed = urlparse(link)
+            if parsed.netloc == base.netloc and parsed.path.rstrip("/") == base.path.rstrip("/"):
+                list_pages.add(link)
+        return list_pages
 
     def crawl(self, url: str, current_depth: int = 0) -> None:
         """
@@ -109,32 +142,52 @@ class PastebinPLCrawler(BaseCrawler):
 
         Notes
         -----
-        This method prints the found pastes and their analysis results to the console.
+        The found pastes are stored in ``found_pastes`` and the non-empty analysis
+        results in ``paste_analysis`` (``{paste_url: matches}``). List pages that
+        link to other list pages of the same site (pagination) are followed while
+        ``current_depth < depth``.
         """
-        if current_depth > self.depth or url in self.visited_urls:
-            return
-        self.visited_urls.add(url)
+        url = self.normalize_link(url, url)
+        with self._visited_lock:
+            if current_depth > self.depth or url in self.visited_urls:
+                return
+            self.visited_urls.add(url)
         try:
             response = self.session.get(
                 url, proxies={"http": self.proxy, "https": self.proxy}, timeout=self.timeout
             )
+            if response.status_code >= 400:
+                self.error_urls.add(url)
+                self.log_manager.log(
+                    "warning", f"HTTP {response.status_code} while crawling {url}.", "network"
+                )
+                return
             pastes = self.extract_pastes(response.content, url)
-            print(f"Pastes found at {url}: {pastes}")
-            # Optionally analyze each paste's content
+            with self._visited_lock:
+                pastes = [paste for paste in pastes if paste["url"] not in self.visited_urls]
+                self.visited_urls.update(paste["url"] for paste in pastes)
+            self.found_pastes.extend(pastes)
+            self.log_manager.log("info", f"{len(pastes)} paste(s) found at {url}", "crawler")
             with ThreadPoolExecutor(max_workers=10) as executor:
                 future_to_paste = {
                     executor.submit(self.analyze_paste, paste["url"]): paste for paste in pastes
                 }
                 for future in as_completed(future_to_paste):
                     paste = future_to_paste[future]  # Get the paste corresponding to this future
-                    try:
-                        paste_analysis = future.result()
-                        if paste_analysis:  # If there's anything significant found in the analysis
-                            print(f"Analysis for {paste['url']}: {paste_analysis}")
-                    except Exception as e:
-                        print(f"Error in analyzing paste: {paste['url']}, Error: {e}")
-        except Exception as e:
-            print(f"Error crawling {url}: {e}")
+                    paste_analysis = future.result()
+                    if paste_analysis:  # If there's anything significant found in the analysis
+                        self.paste_analysis[paste["url"]] = paste_analysis
+                        self.log_manager.log(
+                            "info",
+                            f"{len(paste_analysis)} match(es) in paste {paste['url']}",
+                            "crawler",
+                        )
+            if current_depth < self.depth:
+                for list_page in sorted(self.extract_list_pages(response.content, url)):
+                    self.crawl(list_page, current_depth + 1)
+        except RequestException as e:
+            self.error_urls.add(url)
+            self.log_manager.log("warning", f"Error crawling {url}: {e}", "network")
 
     def analyze_paste(self, paste_url: str) -> Any | None:
         """
@@ -154,14 +207,21 @@ class PastebinPLCrawler(BaseCrawler):
 
         Notes
         -----
-        This method currently prints analysis errors to the console and returns None if an
-        error occurs.
+        Request errors and HTTP error statuses are logged and return None.
         """
         try:
-            response = self.session.get(paste_url, timeout=self.timeout)
-            # Here, we could apply the Yara rules or any other analysis
-            match_list = self.analyze_content(response.text, paste_url)
-            return match_list
-        except Exception as e:
-            print(f"Error analyzing paste {paste_url}: {e}")
+            response = self.session.get(
+                paste_url, proxies={"http": self.proxy, "https": self.proxy}, timeout=self.timeout
+            )
+        except RequestException as e:
+            self.error_urls.add(paste_url)
+            self.log_manager.log("warning", f"Error analyzing paste {paste_url}: {e}", "network")
             return None
+        if response.status_code >= 400:
+            self.error_urls.add(paste_url)
+            self.log_manager.log(
+                "warning", f"HTTP {response.status_code} for paste {paste_url}.", "network"
+            )
+            return None
+        # Here, we could apply the Yara rules or any other analysis
+        return self.analyze_content(response.text, paste_url)

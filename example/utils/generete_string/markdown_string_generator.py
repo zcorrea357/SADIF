@@ -1,5 +1,5 @@
 # Import the MarkdownStringGenerator class from the specified module
-from sadif.utils.generate_string.markdown_string_generator import MarkdownStringGenerator
+from sadif.utils.generete_string.markdown_string_generator import MarkdownStringGenerator
 
 # Create an instance of MarkdownStringGenerator with a specified string length of 10 characters
 markdown_gen = MarkdownStringGenerator(string_length=10)

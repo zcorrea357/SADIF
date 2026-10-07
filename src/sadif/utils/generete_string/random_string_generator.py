@@ -33,6 +33,9 @@ class RandomStringGenerator:
         string_length : int
             The default length for generated random strings.
         """
+        if not isinstance(string_length, int) or string_length < 1:
+            error_message = "O tamanho da string deve ser um inteiro positivo."
+            raise ValueError(error_message)
         self.string_length = string_length
 
     def generate_string_title(self, word: str) -> str:

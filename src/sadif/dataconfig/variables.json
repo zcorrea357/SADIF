@@ -1,11 +1,12 @@
 {
-    "SOAR_INTERNAL_USER": "SOAR_MANAGER_USER",
+    "SADIF_INTERNAL_USER": "SADIF_MANAGER_USER",
     "EMAIL_SETUP_MANAGER": [""],
-    "EMAIL_SOAR_MONITORING": [""],
+    "EMAIL_SADIF_MONITORING": [""],
     "THEHIVE": "http://localhost:9000/api",
     "THEHIVE_API_SERVICE": "YNv1jmR5IpBKJAfd6CWx6Py58HYX+Xqd",
     "ROUTER_PROXY_HTTP": "127.0.0.1:5566",
     "ROUTER_PROXY_HTTPS": "127.0.0.1:5566",
+    "TOR_PROXY": "socks5h://127.0.0.1:9050",
     "MONGODB_URL": "mongodb://localhost:27017",
     "MONGODB_DATABASE_MODULES_MANAGER": "Modules",
     "MONGODB_DATABASE_YARA": "YaraRules",
@@ -17,7 +18,7 @@
     "MONGODB_COLLECTION_CRAWLER_WEB_WITH_CREDENTIAL": "crawler_with_credential_web",
     "MONGODB_COLLECTION_CRAWLER_WEB_WITHOUT_CREDENTIAL": "crawler_without_credential_web",
 
-    "SOAR_DATA_MODULES_URL": "https://git.florestleaks.com/florestleaks/soar/modules_data",
+    "SADIF_DATA_MODULES_URL": "https://git.florestleaks.com/florestleaks/soar/modules_data",
     "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_FOLDER": "ransomwhat",
     "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_NAME": "ransomwhat",
     "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_COLLECTION": "ransomwhat",

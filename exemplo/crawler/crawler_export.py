@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.crawler.crawler_data_export import CrawlerManagerExport
 from sadif.frameworks_drivers.gitmanager import GitManager
 

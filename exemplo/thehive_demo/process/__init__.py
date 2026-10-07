@@ -2,7 +2,7 @@ import random
 from collections.abc import Callable
 from typing import Any
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_manager_case.list_case import (
     ListCase,
 )

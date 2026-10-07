@@ -1,4 +1,7 @@
-from soar.clientmanager.client_data_manager import ClientDataManager
+from pymongo import MongoClient
+
+from sadif.clientmanager.client_data_manager import ClientManager
+from sadif.config.sadif_config import SadifConfiguration
 
 client_data = {
     "Brand_Information": [
@@ -100,10 +103,13 @@ client_data = {
 }
 
 if __name__ == "__main__":
-    from connect_modules.mongoconnect import MongoDBClientManager
+    config = SadifConfiguration()
+    db_real = MongoClient(config.get_configuration("MONGODB_URL"))
+    manager = ClientManager(db_client=db_real)
 
-    # Instanciando o gerenciador do MongoDB
-    client_manager = MongoDBClientManager("mongodb://localhost:27017/")
-    client_data_manager = ClientDataManager(client_manager, "cawwwwju")
-    client_data_manager.create_and_populate_collections(client_data)
-    client_manager.close()
+    # Cria o cliente e guarda os dados de exemplo como informação de um módulo permitido
+    print(manager.create_client_collection("cawwwwju", "Empresa Cawwwwju", "CIID-0001"))
+    print(manager.update_module_info("cawwwwju", "ModuloA", client_data))
+    print(manager.find_client_modules("cawwwwju")["ModuloA"]["Brand_Information"][0]["Name"])
+    print(manager.delete_client_collection("cawwwwju"))
+    db_real.close()
