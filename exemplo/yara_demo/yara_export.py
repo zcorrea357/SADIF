@@ -1,5 +1,5 @@
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.soar_yara.yara_export import YaraRulesExporter
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.sadif_yara.yara_export import YaraRulesExporter
 
 config = SadifConfiguration()
 db_url = config.get_configuration("MONGODB_URL")

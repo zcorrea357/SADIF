@@ -3,8 +3,8 @@ from typing import Any
 
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class ModuleDatabaseManager:
@@ -42,10 +42,14 @@ class ModuleDatabaseManager:
         database, log manager, and logging category.
         """
 
-        self.client = db_client if db_client else MongoClient("localhost", 27017)
+        self.sadif_internal_config = SadifConfiguration()
+        self.client = (
+            db_client
+            if db_client is not None
+            else MongoClient(self.sadif_internal_config.get_configuration("MONGODB_URL"))
+        )
         self.log_manager = LogManager()
-        self.soar_internal_config = SadifConfiguration()
-        self.db_name = self.soar_internal_config.get_configuration(
+        self.db_name = self.sadif_internal_config.get_configuration(
             "MONGODB_DATABASE_MODULES_MANAGER"
         )
         self.db = self.client[self.db_name]
@@ -85,6 +89,7 @@ class ModuleDatabaseManager:
             self.log_manager.capture_exception(
                 e, "Failed to connect to the database.", self.category
             )
+            raise
 
     def create_module_collection(self, module_name: str, validation_schema: dict[str, Any]):
         """
@@ -203,8 +208,11 @@ class ModuleDatabaseManager:
                 return documents
             except Exception as e:
                 self.log_manager.capture_exception(e, "Error fetching documents.", self.category)
+                return []
 
-    def update_document(self, module_name: str, query: dict[str, Any], new_values: dict[str, Any]):
+    def update_document(
+        self, module_name: str, query: dict[str, Any], new_values: dict[str, Any]
+    ) -> int | None:
         """
         Updates a document in the specified module's collection based on the given query and new values.
 
@@ -220,7 +228,8 @@ class ModuleDatabaseManager:
 
         Returns
         -------
-        None
+        int | None
+            Number of documents updated (0 when nothing matched or changed), or None on error.
 
         Raises
         ------
@@ -230,7 +239,13 @@ class ModuleDatabaseManager:
         collection_name = f"module_{module_name}"
         with self.get_connection():
             try:
-                result = self.db[collection_name].update_one(query, {"$set": new_values})
+                # Aceita tanto os campos a definir quanto um documento de update completo
+                # (ex.: {"$set": {...}, "$unset": {...}}), como descrito acima.
+                is_update_document = bool(new_values) and all(
+                    key.startswith("$") for key in new_values
+                )
+                update = new_values if is_update_document else {"$set": new_values}
+                result = self.db[collection_name].update_one(query, update)
                 if result.modified_count > 0:
                     self.log_manager.log(
                         "info", "Document updated successfully.", self.category, "success"
@@ -239,10 +254,11 @@ class ModuleDatabaseManager:
                     self.log_manager.log(
                         "warning", "No document was updated.", self.category, "skipped"
                     )
+                return result.modified_count
             except Exception as e:
                 self.log_manager.capture_exception(e, "Error updating document.", self.category)
 
-    def delete_document(self, module_name: str, query: dict[str, Any]):
+    def delete_document(self, module_name: str, query: dict[str, Any]) -> int | None:
         """
         Deletes a document from the specified module's collection based on the given query.
 
@@ -255,7 +271,8 @@ class ModuleDatabaseManager:
 
         Returns
         -------
-        None
+        int | None
+            Number of documents deleted (0 when nothing matched), or None on error.
 
         Raises
         ------
@@ -274,6 +291,7 @@ class ModuleDatabaseManager:
                     self.log_manager.log(
                         "warning", "No document was deleted.", self.category, "skipped"
                     )
+                return result.deleted_count
             except Exception as e:
                 self.log_manager.capture_exception(e, "Error deleting document.", self.category)
 
@@ -309,3 +327,4 @@ class ModuleDatabaseManager:
                 return documents
             except Exception as e:
                 self.log_manager.capture_exception(e, "Error listing module data.", self.category)
+                return []

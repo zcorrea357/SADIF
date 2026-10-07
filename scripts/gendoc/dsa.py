@@ -1,12 +1,12 @@
 from collections import defaultdict
 from pathlib import Path
 
-from scripts.gendoc.mkdocs_manager_soar import MkdocsManagerSoar
+from scripts.gendoc.mkdocs_manager_sadif import MkdocsManagerSadif
 from scripts.gendoc.pkg_map import PackageMapper
-from scripts.gendoc.soar_doc import DocumentationGenerator
+from scripts.gendoc.sadif_doc import DocumentationGenerator
 
 
-class SoarDocumentationBuilder:
+class SadifDocumentationBuilder:
     """
     Classe responsável por automatizar a geração de documentação para um pacote Python
     e atualizar a configuração do MkDocs com a nova documentação gerada.
@@ -39,7 +39,7 @@ class SoarDocumentationBuilder:
         Constrói a estrutura de documentação a partir dos dados gerados.
     _check_and_group_subcategories(documentation_structure: Dict[str, Dict[str, List[Tuple[str, str]]]]):
         Verifica e agrupa subcategorias na estrutura de documentação.
-    _add_documentation_blocks(mkdocs_manager: MkdocsManagerSoar, base_path: List[str], entries: Dict[str, List[Tuple[str, str]]] or List[Tuple[str, str]]):
+    _add_documentation_blocks(mkdocs_manager: MkdocsManagerSadif, base_path: List[str], entries: Dict[str, List[Tuple[str, str]]] or List[Tuple[str, str]]):
         Adiciona blocos de documentação ao arquivo de configuração do MkDocs.
     """
 
@@ -65,7 +65,7 @@ class SoarDocumentationBuilder:
         documentation_generator = DocumentationGenerator(mapper, str(self.base_directory_abs))
         documentation_generator.generate()
 
-        mkdocs_manager = MkdocsManagerSoar(
+        mkdocs_manager = MkdocsManagerSadif(
             str(self.mkdocs_file_path_abs), str(self.template_path_abs)
         )
         mkdocs_manager.load_yaml()
@@ -152,7 +152,7 @@ class SoarDocumentationBuilder:
 
     def _add_documentation_blocks(
         self,
-        mkdocs_manager: MkdocsManagerSoar,
+        mkdocs_manager: MkdocsManagerSadif,
         base_path: list[str],
         entries: dict[str, list[tuple[str, str]]] or list[tuple[str, str]],
     ) -> None:
@@ -161,7 +161,7 @@ class SoarDocumentationBuilder:
 
         Parameters
         ----------
-        mkdocs_manager : MkdocsManagerSoar
+        mkdocs_manager : MkdocsManagerSadif
             A instância do gerenciador do MkDocs.
         base_path : List[str]
             O caminho base (categorias principais) sob o qual a documentação deve ser adicionada.
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     mkdocs_file_path = "../../mkdocs.yml"
     template_path = "../../doc_data/template_mkdocs.yml"
 
-    builder = SoarDocumentationBuilder(
+    builder = SadifDocumentationBuilder(
         package_name, base_directory, mkdocs_file_path, template_path
     )
     builder.run()

@@ -4,9 +4,9 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from requests.exceptions import RequestException
+from requests.exceptions import InvalidURL, RequestException
 
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class WebhookSender:
@@ -42,7 +42,7 @@ class WebhookSender:
     def __init__(
         self,
         url: str,
-        timeout: int = 10,
+        timeout: float = 10,
         max_retries: int = 3,
         proxies: dict[str, str] | None = None,
         success_callback: Callable | None = None,
@@ -96,17 +96,19 @@ class WebhookSender:
         return True
 
     def send(
-        self, data: dict[str, Any], headers: dict[str, str] | None = None, method: str = "POST"
+        self, data: Any, headers: dict[str, str] | None = None, method: str = "POST"
     ) -> requests.Response | None:
         """
         Sends data to the configured webhook URL.
 
         Parameters
         ----------
-        data : Dict[str, Any]
-            The data to send to the webhook.
+        data : Any
+            The data to send to the webhook. Dicts and lists are JSON-encoded; strings and
+            bytes are sent as-is.
         headers : Optional[Dict[str, str]]
-            Additional headers to include in the request. Defaults to a JSON Content-Type.
+            Additional headers to include in the request. They are merged over the default
+            JSON Content-Type (a custom Content-Type overrides it).
         method : str
             The HTTP method to use for the request. Defaults to "POST".
 
@@ -119,17 +121,22 @@ class WebhookSender:
         ------
         RequestException
             If all attempts to send the request fail.
+        InvalidURL
+            If the configured URL is not well-formed (no request is attempted).
         """
-        if headers is None:
-            headers = {"Content-Type": "application/json"}
+        if not self.validate_url():
+            message = f"Invalid URL provided to WebhookSender: {self.url!r}"
+            raise InvalidURL(message)
+        headers = {"Content-Type": "application/json", **(headers or {})}
 
         current_timeout = self.timeout
-        for attempt in range(self.max_retries):
+        attempts = max(1, self.max_retries)
+        for attempt in range(attempts):
             try:
                 response = requests.request(
                     method,
                     self.url,
-                    data=json.dumps(data) if isinstance(data, dict) else data,
+                    data=json.dumps(data) if isinstance(data, dict | list) else data,
                     headers=headers,
                     timeout=current_timeout,
                     proxies=self.proxies,
@@ -154,7 +161,7 @@ class WebhookSender:
                 if self.failure_callback:
                     self.failure_callback(e)
                 current_timeout *= 2
-                if attempt == self.max_retries - 1:
+                if attempt == attempts - 1:
                     self.logmanager.log(
                         "error",
                         "All attempts to send the webhook failed",

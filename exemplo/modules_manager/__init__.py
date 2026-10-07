@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.modules_manager import ModuleDatabaseManager
 
 # Exemplo de uso
@@ -33,6 +33,10 @@ if __name__ == "__main__":
         "nome": "Java Avançado",
         "descricao": "Curso avançado de Java para desenvolvedores experientes.",
     }
+
+    # Remove os cursos de uma execução anterior (o campo "nome" tem índice único)
+    for curso in (curso_python, curso_java):
+        db_manager.delete_document("Cursos", {"nome": curso["nome"]})
 
     db_manager.insert_document("Cursos", curso_python)
     db_manager.insert_document("Cursos", curso_java)

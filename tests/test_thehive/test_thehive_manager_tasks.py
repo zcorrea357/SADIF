@@ -21,7 +21,7 @@ class TestTask(unittest.TestCase):
         self.mock_session.request.return_value = "mock_response"
         response = self.task.create_task_in_case(self.case_id, self.title)
         self.mock_session.request.assert_called_once_with(
-            f"case/{self.case_id}/task", method="POST", json_data={"title": self.title}
+            f"v1/case/{self.case_id}/task", method="POST", json_data={"title": self.title}
         )
         assert response == "mock_response"
 

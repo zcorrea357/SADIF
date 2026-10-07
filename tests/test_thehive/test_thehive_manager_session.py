@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
+import requests
+
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_session import (
     SessionThehive,
 )
@@ -68,7 +70,31 @@ class TestSessionTheHive(unittest.TestCase):
         assert response == json_data
         assert status_code == 200
 
-    # Continue com testes para os outros métodos e casos de exceção
+    @patch(
+        "sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_session.requests.request"
+    )
+    def test_request_http_error_returns_body_and_status(self, mock_request):
+        response_mock = Mock()
+        response_mock.ok = False
+        response_mock.status_code = 404
+        response_mock.json.return_value = {"type": "NotFoundError"}
+        mock_request.return_value = response_mock
+
+        response, status_code = self.session.request("v1/case/~1")
+
+        assert response == {"type": "NotFoundError"}
+        assert status_code == 404
+
+    @patch(
+        "sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_session.requests.request"
+    )
+    def test_request_connection_error_returns_status_zero(self, mock_request):
+        mock_request.side_effect = requests.ConnectionError("connection refused")
+
+        response, status_code = self.session.request("status")
+
+        assert response == "connection refused"
+        assert status_code == 0
 
 
 if __name__ == "__main__":

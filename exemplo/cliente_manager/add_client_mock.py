@@ -15,9 +15,9 @@ if __name__ == "__main__":
         "versão": "1.0",
         "configurações": {"opção1": True, "opção2": "algum valor"},
     }
-    print(manager.update_module_info("12345", "ModuloB", module_info))
+    print(manager.update_module_info("Empresa XYZ", "ModuloB", module_info))
     # Buscar todas as informações dos módulos do cliente
-    modules_info = manager.find_client_modules("12345")
+    modules_info = manager.find_client_modules("Empresa XYZ")
     print("Todas as informações dos módulos:", modules_info)
 
     # Acessar informações de um módulo específico, por exemplo, "ModuloA"
@@ -25,11 +25,11 @@ if __name__ == "__main__":
     print("Informações do ModuloA:", modulo_a_info)
     # Atualizando um módulo permitido
     print(
-        manager.update_module_info("12345", "ModuloA", {"configuração": "valor"})
+        manager.update_module_info("Empresa XYZ", "ModuloA", {"configuração": "valor"})
     )  # Deve funcionar
 
     # Tentando atualizar um módulo não permitido
     print(
-        manager.update_module_info("12345", "ModuloNaoPermitido", {"configuração": "valor"})
+        manager.update_module_info("Empresa XYZ", "ModuloNaoPermitido", {"configuração": "valor"})
     )  # Deve retornar erro
-    print(manager.delete_client_collection("12345"))
+    print(manager.delete_client_collection("Empresa XYZ"))

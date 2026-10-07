@@ -1,9 +1,9 @@
 from pymongo import MongoClient
 
 from sadif.clientmanager.client_data_manager import ClientManager
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.gitmanager import GitManager
-from sadif.frameworks_drivers.soar_yara.yara_import import YaraRulesImporter
+from sadif.frameworks_drivers.sadif_yara.yara_import import YaraRulesImporter
 
 if __name__ == "__main__":
     config = SadifConfiguration()

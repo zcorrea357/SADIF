@@ -30,7 +30,7 @@ class TestCaseComment(unittest.TestCase):
         self.session.request.return_value = ("response", 200)
         response, status_code = self.case_comment.create_for_alert("alert_id", "message")
         self.session.request.assert_called_once_with(
-            "v1/alertalert_id/comment", method="POST", json_data={"message": "message"}
+            "v1/alert/alert_id/comment", method="POST", json_data={"message": "message"}
         )
         assert response == "response"
         assert status_code == 200

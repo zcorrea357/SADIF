@@ -1,4 +1,4 @@
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_session import (
     SessionThehive,
 )
@@ -49,12 +49,20 @@ class DeleteCase:
         try:
             path = f"v1/case/{idcase}"
             response, status_code = self.session.request(endpoint=path, method="DELETE")
-            self.logmanager.log(
-                "info",
-                f"Case {idcase} successfully deleted.",
-                category="case_deletion",
-                task_state="success",
-            )
+            if 200 <= status_code < 300:
+                self.logmanager.log(
+                    "info",
+                    f"Case {idcase} successfully deleted.",
+                    category="case_deletion",
+                    task_state="success",
+                )
+            else:
+                self.logmanager.log(
+                    "warning",
+                    f"Failed to delete case {idcase}. Status code: {status_code}",
+                    category="case_deletion",
+                    task_state="failed",
+                )
             return response, status_code
         except Exception as e:
             self.logmanager.capture_exception(e, f"Error occurred while deleting case {idcase}")

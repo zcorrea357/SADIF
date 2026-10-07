@@ -163,9 +163,9 @@ nav:
       - Clientmanager:
         - reference/sadif/clientmanager/client_data_manager/ClientManager.md
   - config:
-    - soar_config:
+    - sadif_config:
       - Sadifconfiguration:
-        - reference/sadif/config/soar_config/SadifConfiguration.md
+        - reference/sadif/config/sadif_config/SadifConfiguration.md
   - frameworks_drivers:
     - crawler/base_crawler:
       - Basecrawler:
@@ -176,27 +176,27 @@ nav:
     - gitmanager:
       - Gitmanager:
         - reference/sadif/frameworks_drivers/gitmanager/GitManager.md
-    - log_manager/soar_log:
+    - log_manager/sadif_log:
       - Logmanager:
-        - reference/sadif/frameworks_drivers/log_manager/soar_log/LogManager.md
+        - reference/sadif/frameworks_drivers/log_manager/sadif_log/LogManager.md
     - modules_manager:
       - Moduledatabasemanager:
         - reference/sadif/frameworks_drivers/modules_manager/ModuleDatabaseManager.md
     - notification/webhook:
       - Webhooksender:
         - reference/sadif/frameworks_drivers/notification/webhook/WebhookSender.md
-    - soar_yara/yara_compiler:
-      - Soaryaracompiler:
-        - reference/sadif/frameworks_drivers/soar_yara/yara_compiler/SoarYaraCompiler.md
-    - soar_yara/yara_crud:
+    - sadif_yara/yara_compiler:
+      - Sadifyaracompiler:
+        - reference/sadif/frameworks_drivers/sadif_yara/yara_compiler/SadifYaraCompiler.md
+    - sadif_yara/yara_crud:
       - Yaracrud:
-        - reference/sadif/frameworks_drivers/soar_yara/yara_crud/YaraCrud.md
-    - soar_yara/yara_export:
+        - reference/sadif/frameworks_drivers/sadif_yara/yara_crud/YaraCrud.md
+    - sadif_yara/yara_export:
       - Yararulesexporter:
-        - reference/sadif/frameworks_drivers/soar_yara/yara_export/YaraRulesExporter.md
-    - soar_yara/yara_import:
+        - reference/sadif/frameworks_drivers/sadif_yara/yara_export/YaraRulesExporter.md
+    - sadif_yara/yara_import:
       - Yararulesimporter:
-        - reference/sadif/frameworks_drivers/soar_yara/yara_import/YaraRulesImporter.md
+        - reference/sadif/frameworks_drivers/sadif_yara/yara_import/YaraRulesImporter.md
     - web/authenticator:
       - Authenticator:
         - reference/sadif/frameworks_drivers/web/authenticator/Authenticator.md
