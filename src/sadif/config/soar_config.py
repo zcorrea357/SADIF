@@ -6,6 +6,8 @@ from typing import Any
 
 from sadif.dataconfig import config_variables_file
 
+ENV_PREFIX = "SADIF_"
+
 
 class SadifConfiguration:
     def __init__(self, config_file: str | None = None):
@@ -35,7 +37,20 @@ class SadifConfiguration:
         except json.JSONDecodeError as e:
             logging.exception(f"Error reading JSON file: {self.json_file_path}: {e}")
 
+    def _get_from_environment(self, key: str) -> Any:
+        # Variáveis SADIF_<CHAVE> sobrescrevem o JSON (ex.: SADIF_MONGODB_URL)
+        value = os.environ.get(f"{ENV_PREFIX}{key}")
+        if value is None:
+            return None
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value
+
     def get_configuration(self, key: str) -> Any:
+        env_value = self._get_from_environment(key)
+        if env_value is not None:
+            return env_value
         if self.running_in_airflow:
             try:
                 from airflow.models import Variable

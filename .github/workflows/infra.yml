@@ -1,0 +1,41 @@
+name: Infra
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    paths:
+      - infra/**
+      - .env.example
+      - Makefile
+      - scripts/setup.sh
+
+jobs:
+  mongodb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env
+        run: |
+          cp .env.example .env
+          sed -i "s/^THEHIVE_SECRET=.*/THEHIVE_SECRET=$(openssl rand -hex 32)/" .env
+
+      - name: Validate compose file
+        run: docker compose -f infra/docker-compose.yml --env-file .env --profile tools --profile thehive config -q
+
+      - name: Start MongoDB
+        run: make infra-up
+
+      - name: Check databases were initialised
+        run: |
+          docker compose -f infra/docker-compose.yml --env-file .env exec -T mongodb \
+            mongosh --quiet --eval 'const n = db.adminCommand({listDatabases: 1}).databases.map(d => d.name); ["Modules","YaraRules","Clients","Crawler"].forEach(d => { if (!n.includes(d)) { throw new Error("missing " + d) } }); print("ok")'
+
+      - name: Stop MongoDB
+        if: always()
+        run: make infra-reset

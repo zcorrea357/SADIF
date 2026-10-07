@@ -16,3 +16,37 @@
 ```bash
 pip3 install sadif 
 ```
+# Ambiente de desenvolvimento
+
+Pré-requisitos: Python 3.10–3.12, [Poetry](https://python-poetry.org/), Docker com Compose v2 e `make`.
+
+```bash
+make setup         # dependências (Poetry), hooks do pre-commit e .env (gera THEHIVE_SECRET)
+make infra-up      # sobe o MongoDB em 127.0.0.1:27017
+make test          # testes com cobertura
+```
+
+## Infraestrutura (`infra/docker-compose.yml`)
+
+| Serviço        | Comando             | Endereço                         | Observação |
+|----------------|---------------------|----------------------------------|------------|
+| MongoDB 7      | `make infra-up`     | `mongodb://localhost:27017`      | Cria os bancos `Modules`, `YaraRules`, `Clients`, `Crawler` na 1ª inicialização |
+| mongo-express  | `make infra-up-all` | <http://localhost:8081>          | Login em `MONGO_EXPRESS_USER`/`MONGO_EXPRESS_PASSWORD` |
+| TheHive 5      | `make infra-up-all` | <http://localhost:9000>          | Usa Cassandra + Elasticsearch; login inicial `admin@thehive.local` / `secret` (troque) |
+
+Outros comandos: `make infra-ps`, `make infra-logs`, `make infra-down` (mantém os dados) e
+`make infra-reset` (apaga os volumes). O stack completo precisa de ~4 GB de RAM livres.
+
+## Configuração
+
+Os valores padrão ficam em `src/sadif/dataconfig/variables.json`. Qualquer chave pode ser
+sobrescrita por variável de ambiente com o prefixo `SADIF_` (valores JSON são interpretados):
+
+```bash
+export SADIF_MONGODB_URL=mongodb://localhost:27017
+export SADIF_THEHIVE_API_SERVICE=<api-key-do-thehive>
+export SADIF_YARA_TYPE_RULES='["Leak", "POC"]'
+```
+
+O `Makefile` exporta automaticamente as variáveis do `.env`. Para gerar a API key do TheHive,
+crie um usuário de serviço na interface web e coloque a chave em `SADIF_THEHIVE_API_SERVICE`.
