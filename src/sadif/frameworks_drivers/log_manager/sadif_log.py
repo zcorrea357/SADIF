@@ -3,7 +3,7 @@ from typing import Any, ClassVar
 
 import sentry_sdk
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 
 class LogManager:
@@ -113,9 +113,9 @@ class LogManager:
         log_level : int
             The minimum log level for messages to handle, defaults to logging.DEBUG.
         """
-        self.soar_config = SadifConfiguration()
+        self.sadif_config = SadifConfiguration()
 
-        sentry_sdk.init(dsn=self.soar_config.get_configuration("SENTRYDSN"))
+        sentry_sdk.init(dsn=self.sadif_config.get_configuration("SENTRYDSN"))
         log_format = "%(asctime)s - [%(levelname)s] - [%(name)s] - %(message)s - Source: %(filename)s:%(lineno)d"
         logging.basicConfig(level=log_level, format=log_format, datefmt="%Y-%m-%d %H:%M:%S")
 

@@ -3,8 +3,8 @@ from typing import Any
 
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class ModuleDatabaseManager:
@@ -44,8 +44,8 @@ class ModuleDatabaseManager:
 
         self.client = db_client if db_client else MongoClient("localhost", 27017)
         self.log_manager = LogManager()
-        self.soar_internal_config = SadifConfiguration()
-        self.db_name = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.db_name = self.sadif_internal_config.get_configuration(
             "MONGODB_DATABASE_MODULES_MANAGER"
         )
         self.db = self.client[self.db_name]

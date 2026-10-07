@@ -1,7 +1,7 @@
 # mongo_connection.py
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 
 class MongoDBConnection:

@@ -1,6 +1,6 @@
 import json
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 
 def test_reads_value_from_json_file(tmp_path, monkeypatch):

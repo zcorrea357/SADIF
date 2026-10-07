@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 
 
-class MkdocsManagerSoar:
+class MkdocsManagerSadif:
     """
     Gerencia operações no arquivo mkdocs.yml, permitindo carregar templates,
     adicionar ou remover blocos de documentação.

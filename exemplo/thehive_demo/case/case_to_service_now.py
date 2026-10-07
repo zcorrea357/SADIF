@@ -1,4 +1,4 @@
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.notification.webhook import WebhookSender
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.caso_de_uso.caselist import (
     CaseLister,

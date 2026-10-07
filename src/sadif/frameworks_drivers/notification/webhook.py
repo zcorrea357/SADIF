@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import requests
 from requests.exceptions import RequestException
 
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class WebhookSender:

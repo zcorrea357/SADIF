@@ -2,19 +2,19 @@ import yara
 from pymongo import MongoClient
 
 from sadif.clientmanager.client_data_manager import ClientManager
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 
-class SoarYaraCompiler:
+class SadifYaraCompiler:
     def __init__(self, db_client=None):
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.soar_internal_config = SadifConfiguration()
+        self.sadif_internal_config = SadifConfiguration()
         self.list_all_clients = ClientManager(db_client)
-        self.soar_internal_config.get_configuration("MONGODB_DATABASE_YARA")
-        self.yara_type_rules = self.soar_internal_config.get_configuration("YARA_TYPE_RULES")
+        self.sadif_internal_config.get_configuration("MONGODB_DATABASE_YARA")
+        self.yara_type_rules = self.sadif_internal_config.get_configuration("YARA_TYPE_RULES")
 
-        self.db = self.client[self.soar_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
-        self.mongo_client_prefix = self.soar_internal_config.get_configuration(
+        self.db = self.client[self.sadif_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
+        self.mongo_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
 

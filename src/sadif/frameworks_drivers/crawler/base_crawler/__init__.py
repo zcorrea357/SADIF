@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 from pymongo import MongoClient
 from requests import RequestException
 
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
-from sadif.frameworks_drivers.soar_yara.yara_compiler import SoarYaraCompiler
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
+from sadif.frameworks_drivers.sadif_yara.yara_compiler import SadifYaraCompiler
 
 
 class BaseCrawler:
@@ -43,7 +43,7 @@ class BaseCrawler:
         Timeout for requests.
     client : MongoClient
         MongoDB client for database operations.
-    yara_compiler : SoarYaraCompiler
+    yara_compiler : SadifYaraCompiler
         YARA compiler for content analysis.
     visited_urls : Set[str]
         Set of already visited URLs.
@@ -75,7 +75,7 @@ class BaseCrawler:
         self.proxy = proxy
         self.timeout = timeout
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.yara_compiler = SoarYaraCompiler(db_client)
+        self.yara_compiler = SadifYaraCompiler(db_client)
         self.visited_urls = set()
         self.log_manager = LogManager()
         self.module_name = self.__class__.__name__

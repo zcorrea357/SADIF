@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.crawler.crawler_manager import CrawlerManager
 from sadif.modules.populate.url_to_dbs.ransomwhatimport import RansomwhatImport
 

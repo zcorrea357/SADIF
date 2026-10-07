@@ -3,8 +3,8 @@ from pathlib import Path  # Import Path from pathlib for file operations
 
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class YaraRulesExporter:
@@ -16,8 +16,8 @@ class YaraRulesExporter:
         self.export_dir = export_dir
         self.auto_extract = auto_extract
         self.logger = LogManager()
-        self.soar_internal_config = SadifConfiguration()
-        self.mongo_client_prefix = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.mongo_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
         if not Path(export_dir).exists():

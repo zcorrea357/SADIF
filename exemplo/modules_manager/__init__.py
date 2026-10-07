@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.modules_manager import ModuleDatabaseManager
 
 # Exemplo de uso

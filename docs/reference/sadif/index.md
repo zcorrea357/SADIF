@@ -9,9 +9,9 @@
 ## Clientmanager / Client Data Manager
 
 - [Clientmanager](clientmanager/client_data_manager/ClientManager.md)
-## Config / Soar Config
+## Config / Sadif Config
 
-- [Sadifconfiguration](config/soar_config/SadifConfiguration.md)
+- [Sadifconfiguration](config/sadif_config/SadifConfiguration.md)
 ## Frameworks Drivers / Crawler/Base Crawler
 
 - [Basecrawler](frameworks_drivers/crawler/base_crawler/BaseCrawler.md)
@@ -21,27 +21,27 @@
 ## Frameworks Drivers / Gitmanager
 
 - [Gitmanager](frameworks_drivers/gitmanager/GitManager.md)
-## Frameworks Drivers / Log Manager/Soar Log
+## Frameworks Drivers / Log Manager/Sadif Log
 
-- [Logmanager](frameworks_drivers/log_manager/soar_log/LogManager.md)
+- [Logmanager](frameworks_drivers/log_manager/sadif_log/LogManager.md)
 ## Frameworks Drivers / Modules Manager
 
 - [Moduledatabasemanager](frameworks_drivers/modules_manager/ModuleDatabaseManager.md)
 ## Frameworks Drivers / Notification/Webhook
 
 - [Webhooksender](frameworks_drivers/notification/webhook/WebhookSender.md)
-## Frameworks Drivers / Soar Yara/Yara Compiler
+## Frameworks Drivers / Sadif Yara/Yara Compiler
 
-- [Soaryaracompiler](frameworks_drivers/soar_yara/yara_compiler/SoarYaraCompiler.md)
-## Frameworks Drivers / Soar Yara/Yara Crud
+- [Sadifyaracompiler](frameworks_drivers/sadif_yara/yara_compiler/SadifYaraCompiler.md)
+## Frameworks Drivers / Sadif Yara/Yara Crud
 
-- [Yaracrud](frameworks_drivers/soar_yara/yara_crud/YaraCrud.md)
-## Frameworks Drivers / Soar Yara/Yara Export
+- [Yaracrud](frameworks_drivers/sadif_yara/yara_crud/YaraCrud.md)
+## Frameworks Drivers / Sadif Yara/Yara Export
 
-- [Yararulesexporter](frameworks_drivers/soar_yara/yara_export/YaraRulesExporter.md)
-## Frameworks Drivers / Soar Yara/Yara Import
+- [Yararulesexporter](frameworks_drivers/sadif_yara/yara_export/YaraRulesExporter.md)
+## Frameworks Drivers / Sadif Yara/Yara Import
 
-- [Yararulesimporter](frameworks_drivers/soar_yara/yara_import/YaraRulesImporter.md)
+- [Yararulesimporter](frameworks_drivers/sadif_yara/yara_import/YaraRulesImporter.md)
 ## Frameworks Drivers / Ticket System/Thehive/Thehive Internal Mods Api/Caso De Uso/Caselist
 
 - [Caselister](frameworks_drivers/ticket_system/thehive/thehive_internal_mods_api/caso_de_uso/caselist/CaseLister.md)

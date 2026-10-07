@@ -23,7 +23,7 @@ examples=(
     example/template_class/__init__.py
     example/utils/generete_string/markdown_string_generator.py
     example/utils/generete_string/random_string_generator.py
-    exemplo/soar_config/__init__.py
+    exemplo/sadif_config/__init__.py
     exemplo/logdemo.py
     exemplo/__init__.py
     exemplo/cliente_manager/add_client_mock.py
@@ -40,7 +40,7 @@ examples=(
     exemplo/crawler/crawler_export.py
     exemplo/crawler/import/ransomwhat/__init__.py
     exemplo/crawler/base_crawler.py
-    exemplo/crawler/soar_crawler.py
+    exemplo/crawler/sadif_crawler.py
     exemplo/demo/data_sample.py
     exemplo/web/__init__.py
     exemplo/webhook/__init__.py

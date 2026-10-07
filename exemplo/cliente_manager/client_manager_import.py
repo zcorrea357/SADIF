@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 
 from sadif.clientmanager.client_data_import import ClientManagerImport
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.gitmanager import GitManager
 
 if __name__ == "__main__":

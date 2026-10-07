@@ -3,8 +3,8 @@ from typing import Any
 from pymongo import MongoClient, errors
 from pymongo.collection import Collection
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class ClientManager:
@@ -22,10 +22,10 @@ class ClientManager:
     ----------
     client : MongoClient
         The MongoDB client used to interact with the database.
-    soar_internal_config : SadifConfiguration
-        Configuration object to access SOAR platform settings.
+    sadif_internal_config : SadifConfiguration
+        Configuration object to access SADIF platform settings.
     mongodb_client_prefix : str
-        Prefix for MongoDB client collections derived from the SOAR configuration.
+        Prefix for MongoDB client collections derived from the SADIF configuration.
     db : Database
         The MongoDB database instance where client collections are managed.
     log_manager : LogManager
@@ -35,12 +35,12 @@ class ClientManager:
 
     def __init__(self, db_client=None):
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.soar_internal_config = SadifConfiguration()
-        self.mongodb_client_prefix = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.mongodb_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
         self.db = self.client[
-            self.soar_internal_config.get_configuration("MONGODB_DATABASE_CLIENTS")
+            self.sadif_internal_config.get_configuration("MONGODB_DATABASE_CLIENTS")
         ]
         self.log_manager = LogManager()
 
@@ -143,7 +143,7 @@ class ClientManager:
             A message indicating the outcome of the update operation.
 
         """
-        if module_name not in self.soar_internal_config.get_configuration("CLIENTS_MODULES"):
+        if module_name not in self.sadif_internal_config.get_configuration("CLIENTS_MODULES"):
             self.log_manager.log(
                 "error",
                 f"Módulo '{module_name}' não é permitido.",

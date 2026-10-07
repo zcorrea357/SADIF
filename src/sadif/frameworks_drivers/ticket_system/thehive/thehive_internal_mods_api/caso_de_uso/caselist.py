@@ -1,4 +1,4 @@
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_manager_case.list_case import (
     ListCase,
 )

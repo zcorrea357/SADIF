@@ -2,7 +2,7 @@ import unittest
 
 import mongomock
 
-from sadif.frameworks_drivers.soar_yara.yara_crud import YaraCrud
+from sadif.frameworks_drivers.sadif_yara.yara_crud import YaraCrud
 
 
 class TestYaraCrud(unittest.TestCase):

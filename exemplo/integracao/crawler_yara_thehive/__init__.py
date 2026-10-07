@@ -2,7 +2,7 @@ import datetime
 
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.crawler.base_crawler import BaseCrawler
 from sadif.frameworks_drivers.crawler.crawler_manager import CrawlerManager
 from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_datatype import (

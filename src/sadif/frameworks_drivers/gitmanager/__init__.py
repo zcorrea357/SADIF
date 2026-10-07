@@ -4,7 +4,7 @@ from pathlib import Path
 
 from git import GitCommandError, Repo
 
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class GitManager:

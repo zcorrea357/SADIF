@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 # Carrega configurações a partir de um arquivo JSON externo (em vez do variables.json padrão)
 config_file = Path(__file__).parent / "externodefault_config.json"

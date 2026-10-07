@@ -8,9 +8,9 @@ from pathlib import Path
 import requests
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.gitmanager import GitManager
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 from sadif.frameworks_drivers.modules_manager import ModuleDatabaseManager
 from sadif.interfaces.base_modules import IBaseModule
 
@@ -24,7 +24,7 @@ class RansomwhatImport(IBaseModule):
 
     Attributes:
         client (MongoClient): A MongoClient object for database interaction.
-        soar_internal_config (SoarConfiguration): Configuration object for internal settings.
+        sadif_internal_config (SadifConfiguration): Configuration object for internal settings.
         ransomwhat_url (str): URL to fetch Ransomwhat data.
         ransomwhat_collection (str): Name of the MongoDB collection for Ransomwhat data.
         ransomwhat_module_name (str): Name of the Ransomwhat module.
@@ -32,7 +32,7 @@ class RansomwhatImport(IBaseModule):
         git_password (str): Password or token for Git repository access.
         git_url (str): URL of the Git repository for data modules.
         modules_manager (ModuleDatabaseManager): Manager for database module operations.
-        soar_user (str): User identifier for SOAR internal operations.
+        sadif_user (str): User identifier for SADIF internal operations.
         log_manager (LogManager): LogManager instance for logging.
         git_manager (GitManager): GitManager instance for Git operations.
     """
@@ -45,23 +45,23 @@ class RansomwhatImport(IBaseModule):
             db_client (Optional[MongoClient]): The MongoDB client instance. Defaults to a new client if None.
         """
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.soar_internal_config = SadifConfiguration()
-        self.ransomwhat_url: str = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.ransomwhat_url: str = self.sadif_internal_config.get_configuration(
             "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_URL"
         )
-        self.ransomwhat_collection: str = self.soar_internal_config.get_configuration(
+        self.ransomwhat_collection: str = self.sadif_internal_config.get_configuration(
             "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_COLLECTION"
         )
-        self.ransomwhat_module_name: str = self.soar_internal_config.get_configuration(
+        self.ransomwhat_module_name: str = self.sadif_internal_config.get_configuration(
             "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_NAME"
         )
-        self.ransomwhat_json_schema: dict = self.soar_internal_config.get_configuration(
+        self.ransomwhat_json_schema: dict = self.sadif_internal_config.get_configuration(
             "MONGODB_DATABASE_MODULES_MANAGER_RANSOMWHAT_JSON_SCHEMA"
         )
-        self.git_password: str = self.soar_internal_config.get_configuration("GIT_REPO_TOKEN")
-        self.git_url: str = self.soar_internal_config.get_configuration("SOAR_DATA_MODULES_URL")
+        self.git_password: str = self.sadif_internal_config.get_configuration("GIT_REPO_TOKEN")
+        self.git_url: str = self.sadif_internal_config.get_configuration("SADIF_DATA_MODULES_URL")
         self.modules_manager = ModuleDatabaseManager(self.client)
-        self.soar_user = self.soar_internal_config.get_configuration("SOAR_INTERNAL_USER")
+        self.sadif_user = self.sadif_internal_config.get_configuration("SADIF_INTERNAL_USER")
 
         # Inicialização correta do LogManager
         self.log_manager = LogManager()
@@ -203,7 +203,7 @@ class RansomwhatImport(IBaseModule):
             # Building and logging the commit message
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # noqa: DTZ005
             commit_message = (
-                f"Automated update: {updated_files_count} URLs at {now} by {self.soar_user}"
+                f"Automated update: {updated_files_count} URLs at {now} by {self.sadif_user}"
             )
             self.log_manager.log(
                 "info", f"Commit message: {commit_message}", category="git", task_state="success"

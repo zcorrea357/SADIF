@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class YaraRulesImporter:
@@ -17,13 +17,13 @@ class YaraRulesImporter:
         """
         Initializes the YaraRulesImporter class.
         """
-        self.soar_internal_config = SadifConfiguration()
+        self.sadif_internal_config = SadifConfiguration()
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.db = self.client[self.soar_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
-        self.mongo_client_prefix = self.soar_internal_config.get_configuration(
+        self.db = self.client[self.sadif_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
+        self.mongo_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
-        self.yara_type_rules = self.soar_internal_config.get_configuration("YARA_TYPE_RULES")
+        self.yara_type_rules = self.sadif_internal_config.get_configuration("YARA_TYPE_RULES")
         self.git_manager = git_manager
         self.directory = directory
         self.clients = clients

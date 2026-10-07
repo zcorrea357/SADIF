@@ -3,15 +3,15 @@ import re
 from pymongo import MongoClient
 
 from sadif.clientmanager.client_data_manager import ClientManager
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 
 class YaraCrud:
     def __init__(self, db_client=None):
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.soar_internal_config = SadifConfiguration()
-        self.db = self.client[self.soar_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
-        self.mongo_client_prefix = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.db = self.client[self.sadif_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
+        self.mongo_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
         self.list_all_clients = ClientManager(db_client)

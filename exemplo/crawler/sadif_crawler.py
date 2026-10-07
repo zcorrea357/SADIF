@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.crawler.base_crawler import BaseCrawler
 from sadif.frameworks_drivers.web.authenticator.basic_auth_strategy import BasicAuthStrategy
 from sadif.frameworks_drivers.web.session_manager import SessionManager

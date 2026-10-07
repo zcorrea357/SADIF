@@ -4,8 +4,8 @@ from pathlib import Path
 from pymongo import MongoClient
 from pymongo.mongo_client import MongoClient as MongoClientType
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class ClientManagerExport:
@@ -21,10 +21,10 @@ class ClientManagerExport:
     ----------
     client : MongoClientType
         MongoDB client used for database connection.
-    soar_internal_config : SadifConfiguration
-        Soar internal configuration.
+    sadif_internal_config : SadifConfiguration
+        SADIF internal configuration.
     mongodb_client_prefix : str
-        MongoDB client prefix, obtained from Soar configuration.
+        MongoDB client prefix, obtained from SADIF configuration.
     db : Database
         MongoDB database for clients.
     log_manager : LogManager
@@ -36,12 +36,12 @@ class ClientManagerExport:
 
     def __init__(self, db_client: MongoClientType | None = None):
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.soar_internal_config = SadifConfiguration()
-        self.mongodb_client_prefix = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.mongodb_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
         self.db = self.client[
-            self.soar_internal_config.get_configuration("MONGODB_DATABASE_CLIENTS")
+            self.sadif_internal_config.get_configuration("MONGODB_DATABASE_CLIENTS")
         ]
         self.log_manager = LogManager()
         self.temp_dir = None

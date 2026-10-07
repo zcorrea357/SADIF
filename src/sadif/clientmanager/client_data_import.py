@@ -4,8 +4,8 @@ from pathlib import Path
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
-from sadif.config.soar_config import SadifConfiguration
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class ClientManagerImport:
@@ -27,12 +27,12 @@ class ClientManagerImport:
 
         """
         self.client = db_client if db_client else MongoClient("localhost", 27017)
-        self.soar_internal_config = SadifConfiguration()
-        self.mongodb_client_prefix = self.soar_internal_config.get_configuration(
+        self.sadif_internal_config = SadifConfiguration()
+        self.mongodb_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
         self.db = self.client[
-            self.soar_internal_config.get_configuration("MONGODB_DATABASE_CLIENTS")
+            self.sadif_internal_config.get_configuration("MONGODB_DATABASE_CLIENTS")
         ]
         self.log_manager = LogManager()
         self.git_manager = git_manager

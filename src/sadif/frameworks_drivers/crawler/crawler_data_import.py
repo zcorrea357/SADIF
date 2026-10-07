@@ -3,9 +3,9 @@ from pathlib import Path
 
 from pymongo import MongoClient
 
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.gitmanager import GitManager
-from sadif.frameworks_drivers.log_manager.soar_log import LogManager
+from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class CrawlerManagerImporter:
@@ -16,7 +16,7 @@ class CrawlerManagerImporter:
         self.log_manager.log("info", init_msg, category="import_manager", task_state="running")
 
         try:
-            self.soar_internal_config = SadifConfiguration()
+            self.sadif_internal_config = SadifConfiguration()
             cloned_dir = self.git_manager.clone_repo()
             if cloned_dir:
                 self.directory = cloned_dir
@@ -24,25 +24,25 @@ class CrawlerManagerImporter:
                 self.log_manager.log("error", "Error in cloning the Git repository")
             self.db_client = db_client or MongoClient()
             self.db = self.db_client[
-                self.soar_internal_config.get_configuration("MONGODB_DATABASE_CRAWLER")
+                self.sadif_internal_config.get_configuration("MONGODB_DATABASE_CRAWLER")
             ]
             self.collection_with_credential_web = self.db[
-                self.soar_internal_config.get_configuration(
+                self.sadif_internal_config.get_configuration(
                     "MONGODB_COLLECTION_CRAWLER_WEB_WITH_CREDENTIAL"
                 )
             ]
             self.collection_without_credential_web = self.db[
-                self.soar_internal_config.get_configuration(
+                self.sadif_internal_config.get_configuration(
                     "MONGODB_COLLECTION_CRAWLER_WEB_WITHOUT_CREDENTIAL"
                 )
             ]
             self.collection_with_credential_onion = self.db[
-                self.soar_internal_config.get_configuration(
+                self.sadif_internal_config.get_configuration(
                     "MONGODB_COLLECTION_CRAWLER_ONION_WITH_CREDENTIAL"
                 )
             ]
             self.collection_without_credential_onion = self.db[
-                self.soar_internal_config.get_configuration(
+                self.sadif_internal_config.get_configuration(
                     "MONGODB_COLLECTION_CRAWLER_ONION_WITHOUT_CREDENTIAL"
                 )
             ]

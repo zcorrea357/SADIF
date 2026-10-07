@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 
 from sadif.clientmanager.client_data_manager import ClientManager
-from sadif.config.soar_config import SadifConfiguration
+from sadif.config.sadif_config import SadifConfiguration
 
 if __name__ == "__main__":
     config = SadifConfiguration()
