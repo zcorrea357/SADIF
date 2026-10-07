@@ -1,3 +1,4 @@
+import json
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
@@ -11,9 +12,15 @@ from requests import RequestException
 from sadif.config.sadif_config import SadifConfiguration
 from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 from sadif.frameworks_drivers.sadif_yara.yara_compiler import SadifYaraCompiler
+from sadif.frameworks_drivers.web.authenticator.api_key_auth_strategy import ApiKeyAuthStrategy
 from sadif.frameworks_drivers.web.authenticator.basic_auth_strategy import BasicAuthStrategy
 from sadif.frameworks_drivers.web.authenticator.bearer_auth_strategy import BearerAuthStrategy
+from sadif.frameworks_drivers.web.authenticator.cookie_auth_strategy import CookieAuthStrategy
 from sadif.frameworks_drivers.web.authenticator.digest_auth_strategy import DigestAuthStrategy
+from sadif.frameworks_drivers.web.authenticator.form_auth_strategy import FormAuthStrategy
+from sadif.frameworks_drivers.web.authenticator.oauth2_client_credentials_strategy import (
+    OAuth2ClientCredentialsStrategy,
+)
 
 CRAWLABLE_SCHEMES = ("http", "https")
 
@@ -105,12 +112,8 @@ class BaseCrawler:
         """
         Performs authentication on the target website, if necessary.
 
-        Parameters
-        ----------
-        auth_details : Dict[str, str]
-            Details required for authentication: ``{"token": ...}`` (bearer),
-            ``{"username": ..., "password": ...}`` (basic) or the same with
-            ``"type": "digest"``. ``"type"`` may also be ``"basic"`` or ``"bearer"``.
+        Supported ``type`` values: ``basic``, ``digest``, ``bearer``,
+        ``form``, ``api_key``, ``cookie``, ``oauth2_client_credentials``.
 
         Raises
         ------
@@ -121,6 +124,17 @@ class BaseCrawler:
         auth_type = (auth_details.get("type") or "").lower()
         if not auth_type:
             auth_type = "bearer" if auth_details.get("token") else "basic"
+
+        strategy: (
+            BasicAuthStrategy
+            | BearerAuthStrategy
+            | DigestAuthStrategy
+            | FormAuthStrategy
+            | ApiKeyAuthStrategy
+            | CookieAuthStrategy
+            | OAuth2ClientCredentialsStrategy
+        )
+
         if auth_type == "bearer" and auth_details.get("token"):
             strategy = BearerAuthStrategy(auth_details["token"])
         elif (
@@ -130,11 +144,31 @@ class BaseCrawler:
         ):
             strategy_class = DigestAuthStrategy if auth_type == "digest" else BasicAuthStrategy
             strategy = strategy_class(auth_details["username"], auth_details["password"])
+        elif auth_type == "form" and auth_details.get("login_url"):
+            form_data = {k: v for k, v in auth_details.items() if k not in ("type", "login_url")}
+            strategy = FormAuthStrategy(auth_details["login_url"], form_data)
+        elif auth_type == "api_key" and auth_details.get("key") and auth_details.get("value"):
+            strategy = ApiKeyAuthStrategy(
+                auth_details["key"],
+                auth_details["value"],
+                auth_details.get("location", "header"),
+            )
+        elif auth_type == "cookie" and auth_details.get("cookies"):
+            cookies = auth_details["cookies"]
+            cookie_dict = json.loads(cookies) if isinstance(cookies, str) else cookies
+            strategy = CookieAuthStrategy(cookie_dict)
+        elif auth_type == "oauth2_client_credentials" and auth_details.get("token_url"):
+            strategy = OAuth2ClientCredentialsStrategy(
+                auth_details["token_url"],
+                auth_details.get("client_id", ""),
+                auth_details.get("client_secret", ""),
+                auth_details.get("scope", ""),
+            )
         else:
             self.log_manager.log(
                 "error", f"Invalid authentication details for {self.base_url}.", "security"
             )
-            msg = "auth_details must contain 'token' or 'username' and 'password'."
+            msg = f"Unsupported auth type '{auth_type}' or missing required fields."
             raise ValueError(msg)
         self.session = strategy.authenticate(self.session)
         self.log_manager.log("info", f"Authentication ({auth_type}) configured.", "security")

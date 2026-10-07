@@ -150,21 +150,27 @@ def local_git_repo(tmp_path: Path) -> Callable[[dict[str, str]], str]:
 
 class _Handler(http.server.BaseHTTPRequestHandler):
     routes: dict[str, tuple[int, str, str]]
+    dynamic_routes: dict[str, Callable]
     requests_log: list[dict]
 
     def _respond(self) -> None:
         length = int(self.headers.get("Content-Length") or 0)
-        self.requests_log.append(
-            {
-                "method": self.command,
-                "path": self.path,
-                "headers": dict(self.headers),
-                "body": self.rfile.read(length).decode("utf-8", "replace") if length else "",
-            }
-        )
-        status, content_type, body = self.routes.get(
-            self.path.split("?", 1)[0], (404, "text/plain", "not found")
-        )
+        body_bytes = self.rfile.read(length) if length else b""
+        req = {
+            "method": self.command,
+            "path": self.path,
+            "headers": dict(self.headers),
+            "body": body_bytes.decode("utf-8", "replace") if body_bytes else "",
+        }
+        self.requests_log.append(req)
+        clean_path = self.path.split("?", 1)[0]
+
+        if clean_path in self.dynamic_routes:
+            status, content_type, body = self.dynamic_routes[clean_path](req)
+        else:
+            status, content_type, body = self.routes.get(
+                clean_path, (404, "text/plain", "not found")
+            )
         payload = body.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -183,9 +189,16 @@ class LocalHTTPServer:
 
     def __init__(self) -> None:
         self.routes: dict[str, tuple[int, str, str]] = {}
+        self.dynamic_routes: dict[str, Callable] = {}
         self.requests: list[dict] = []
         handler = type(
-            "Handler", (_Handler,), {"routes": self.routes, "requests_log": self.requests}
+            "Handler",
+            (_Handler,),
+            {
+                "routes": self.routes,
+                "dynamic_routes": self.dynamic_routes,
+                "requests_log": self.requests,
+            },
         )
         self._server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
@@ -195,6 +208,11 @@ class LocalHTTPServer:
     def add(self, path: str, body: str, status: int = 200, content_type: str = "text/html") -> str:
         """Registra uma rota e retorna a URL completa dela."""
         self.routes[path] = (status, content_type, body)
+        return f"{self.url}{path}"
+
+    def add_handler(self, path: str, handler: Callable) -> str:
+        """Registra uma rota dinâmica (handler recebe o request dict e retorna (status, content_type, body))."""
+        self.dynamic_routes[path] = handler
         return f"{self.url}{path}"
 
     def close(self) -> None:
