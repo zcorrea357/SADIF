@@ -94,6 +94,7 @@ addopts = "--color=yes --doctest-modules --exitfirst --failed-first --strict-con
 filterwarnings = ["error", "ignore::DeprecationWarning"]
 testpaths = ["src", "tests"]
 xfail_strict = true
+markers = ["e2e: testes end-to-end contra a infra local (MongoDB/TheHive); pulados se ela estiver fora do ar"]
 
 [tool.ruff]  # https://github.com/charliermarsh/ruff
 fix = true
