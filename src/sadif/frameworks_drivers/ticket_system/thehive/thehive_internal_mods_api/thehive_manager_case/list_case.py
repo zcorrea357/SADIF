@@ -34,9 +34,15 @@ class ListCase:
         self.session = session
         self.logmanager = LogManager()
 
-    def list_cases(self):
+    def list_cases(self, case_range: str | None = None):
         """
         Retrieve a list of cases from TheHive.
+
+        Parameters
+        ----------
+        case_range : str | None
+            Optional TheHive ``range`` (e.g. ``"all"`` or ``"0-50"``). Without it TheHive
+            returns only its default first page (10 cases).
 
         Returns
         -------
@@ -45,7 +51,7 @@ class ListCase:
             a request exception, returns None for the response and the error message
             as the status.
         """
-        endpoint = "case"
+        endpoint = "case" if case_range is None else f"case?range={case_range}"
         try:
             response, status = self.session.request(endpoint=endpoint)
 

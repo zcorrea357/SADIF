@@ -3,6 +3,20 @@ from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.th
     SessionThehive,
 )
 
+# Tipos de observable cujo conteúdo é um arquivo: o TheHive exige upload multipart, que a
+# SessionThehive (só JSON) não faz. Enviados como JSON, o TheHive responde 201 com uma
+# lista vazia sem criar nada, então são recusados explicitamente.
+ATTACHMENT_DATA_TYPES = frozenset({"file"})
+
+
+def _reject_attachment_type(data_type) -> None:
+    if data_type in ATTACHMENT_DATA_TYPES:
+        msg = (
+            f"Observable dataType {data_type!r} requires a multipart file upload, "
+            "which is not supported; use a non-attachment dataType (e.g. 'filename' or 'hash')"
+        )
+        raise ValueError(msg)
+
 
 class Observable:
     """
@@ -102,7 +116,14 @@ class Observable:
         -------
         tuple
             The response and status code from the API request to add the observable to the case.
+
+        Raises
+        ------
+        ValueError
+            If data_type is an attachment type (e.g. 'file'), which needs a multipart upload.
         """
+        _reject_attachment_type(data_type)
+
         # Construct the URL
         endpoint = f"v1/case/{case_id}/observable"
 
@@ -189,7 +210,12 @@ class Observable:
         tuple
             The response and status code from the API request to add the observable to the alert.
 
+        Raises
+        ------
+        ValueError
+            If data_type is an attachment type (e.g. 'file'), which needs a multipart upload.
         """
+        _reject_attachment_type(data_type)
         try:
             # Construct the URL
             endpoint = f"v1/alert/{alert_id}/observable"
@@ -215,17 +241,18 @@ class Observable:
 
             response, status = self.session.request(endpoint, method="POST", json_data=payload)
 
-            if status == 200:
+            # 201 = criado; 207 (multi-status) = o TheHive recusou o observable (ex.: duplicado).
+            if status in (200, 201):
                 self.logmanager.log(
                     "info",
-                    f"Observable added to case {alert_id} successfully.",
+                    f"Observable added to alert {alert_id} successfully.",
                     category="observable_add",
                     task_state="success",
                 )
             else:
                 self.logmanager.log(
                     "warning",
-                    f"Failed to add observable to case {alert_id}. Status code: {status}",
+                    f"Failed to add observable to alert {alert_id}. Status code: {status} ({response})",
                     category="observable_add",
                     task_state="failed",
                 )
@@ -234,7 +261,7 @@ class Observable:
         except Exception as e:
             self.logmanager.log(
                 "error",
-                f"Exception occurred while adding observable to case {alert_id}: {e}",
+                f"Exception occurred while adding observable to alert {alert_id}: {e}",
                 category="observable_add_exception",
                 task_state="failed",
             )

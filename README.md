@@ -56,6 +56,15 @@ repositório git local em `.local/client_monitoring` com o cliente `Internal`
 regras YARA, e aponta `SADIF_GIT_REPO_CLIENT_MONITORING_URL` para ele. Para rodar um exemplo só:
 `./scripts/run-examples.sh exemplo/yara_demo/yara_import.py`.
 
+## Testes end-to-end (`tests/e2e`)
+
+`make test` também roda os testes end-to-end contra o MongoDB e o TheHive locais
+(`make infra-up-all` + `make examples-bootstrap`). Sem a infra no ar eles são pulados
+automaticamente. Cada teste usa bancos MongoDB próprios (`SADIF_MONGODB_DATABASE_*`),
+repositórios git locais e um servidor HTTP local (`tests/e2e/conftest.py`), sem acessar a
+internet. As regras YARA de exemplo de cada cliente e tipo (`Vips`, `POC`, `Leak`, `Domino`,
+`Incidente`, `StringMatch`) ficam em `infra/fixtures/yara_rules/`.
+
 ## Configuração
 
 Os valores padrão ficam em `src/sadif/dataconfig/variables.json`. Qualquer chave pode ser

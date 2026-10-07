@@ -1,23 +1,32 @@
-import re
-
 from pymongo import MongoClient
 
 from sadif.clientmanager.client_data_manager import ClientManager
 from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.sadif_yara.yara_import import (
+    _BLOCK_COMMENT,
+    _LINE_COMMENT,
+    _RULE_DECLARATION,
+)
 
 
 class YaraCrud:
     def __init__(self, db_client=None):
-        self.client = db_client if db_client else MongoClient("localhost", 27017)
         self.sadif_internal_config = SadifConfiguration()
+        self.client = (
+            db_client
+            if db_client is not None
+            else MongoClient(self.sadif_internal_config.get_configuration("MONGODB_URL"))
+        )
         self.db = self.client[self.sadif_internal_config.get_configuration("MONGODB_DATABASE_YARA")]
         self.mongo_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
-        self.list_all_clients = ClientManager(db_client)
+        self.list_all_clients = ClientManager(self.client)
 
     def parse_rule(self, content):
-        match = re.search(r"rule\s+(\w+)", content)
+        # Ignora comentários (ex.: "// esta rule detecta...") ao procurar a declaração da regra
+        code = _LINE_COMMENT.sub("", _BLOCK_COMMENT.sub("", content))
+        match = _RULE_DECLARATION.search(code)
         if match:
             return match.group(1), content
         return None, content

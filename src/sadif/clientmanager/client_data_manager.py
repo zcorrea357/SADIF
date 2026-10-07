@@ -34,8 +34,12 @@ class ClientManager:
     """
 
     def __init__(self, db_client=None):
-        self.client = db_client if db_client else MongoClient("localhost", 27017)
         self.sadif_internal_config = SadifConfiguration()
+        self.client = (
+            db_client
+            if db_client is not None
+            else MongoClient(self.sadif_internal_config.get_configuration("MONGODB_URL"))
+        )
         self.mongodb_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
@@ -46,9 +50,9 @@ class ClientManager:
 
     def create_client_collection(
         self,
-        client_name: str,
-        company: str,
-        ciid: str,
+        client_name: str | None,
+        company: str | None,
+        ciid: str | None,
         overwrite: bool = False,
     ) -> str:
         """
@@ -78,7 +82,7 @@ class ClientManager:
                 "error",
                 "Falha na criação da coleção: 'client_name', 'company' e 'ciid' são necessários.",
                 category="Database",
-                task_state="success",
+                task_state="failed",
             )
             return "Erro: 'client_name', 'company' e 'ciid' são necessários."
 
@@ -148,7 +152,7 @@ class ClientManager:
                 "error",
                 f"Módulo '{module_name}' não é permitido.",
                 category="Database",
-                task_state="success",
+                task_state="failed",
             )
             return f"Erro: Módulo '{module_name}' não é permitido."
 
@@ -218,7 +222,7 @@ class ClientManager:
                     "error",
                     "Informações do cliente não encontradas ao buscar módulos.",
                     category="Database",
-                    task_state="success",
+                    task_state="failed",
                 )
                 return "Informações do cliente não encontradas."
         except errors.PyMongoError as e:
@@ -248,7 +252,7 @@ class ClientManager:
                 "error",
                 "Cliente não encontrado ao deletar coleção.",
                 category="Database",
-                task_state="success",
+                task_state="failed",
             )
             return "Cliente não encontrado."
 
@@ -277,13 +281,13 @@ class ClientManager:
             A list of all client names.
 
         """
-        client_names = []
-        collection_names = self.db.list_collection_names()
-        for collection_name in collection_names:
-            if collection_name.startswith(self.mongodb_client_prefix):
-                client_name = collection_name.split(self.mongodb_client_prefix)[1]
-                client_names.append(client_name)
-        return client_names
+        prefix_length = len(self.mongodb_client_prefix)
+        return sorted(
+            collection_name[prefix_length:]
+            for collection_name in self.db.list_collection_names()
+            if collection_name.startswith(self.mongodb_client_prefix)
+            and len(collection_name) > prefix_length
+        )
 
     def _generate_collection_name(self, client_name: str) -> str:
         """

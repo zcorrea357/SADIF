@@ -22,17 +22,22 @@ class MarkdownConverter:
     def convert_image(self, value):
         return f"![{value.get('alt_text', '')}]({value.get('url', '')})"
 
+    def convert_paragraph(self, value):
+        return str(value)
+
     def convert_table(self, value):
-        headers = value.get("headers", [])
+        headers = [str(header) for header in value.get("headers", [])]
         table_str = "| " + " | ".join(headers) + " |"
         table_str += "\n| " + " | ".join(["---"] * len(headers)) + " |"
         for row in value.get("rows", []):
-            table_str += f"\n| {' | '.join(row)} |"
+            # células numéricas/None não quebram o join
+            table_str += f"\n| {' | '.join(str(cell) for cell in row)} |"
         return table_str
 
     def convert(self, content_list):
         conversion_methods = {
             "header": self.convert_header,
+            "paragraph": self.convert_paragraph,
             "unordered_list": self.convert_unordered_list,
             "ordered_list": self.convert_ordered_list,
             "fenced_code_block": self.convert_fenced_code_block,

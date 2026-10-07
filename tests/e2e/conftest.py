@@ -21,10 +21,6 @@ import requests
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_session import (
-    SessionThehive,
-)
-
 ROOT = Path(__file__).resolve().parents[2]
 DATABASE_KEYS = (
     "MONGODB_DATABASE_CLIENTS",
@@ -110,8 +106,14 @@ def sadif_databases(
 
 
 @pytest.fixture()
-def thehive_session() -> SessionThehive:
+def thehive_session():
     """Sessão autenticada no TheHive local (pula se indisponível ou sem API key)."""
+    # Import tardio: importar o sadif ao carregar o conftest desligaria o typeguard
+    # (o plugin precisa instrumentar o pacote antes do primeiro import)
+    from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.thehive_session import (
+        SessionThehive,
+    )
+
     if not _thehive_available():
         pytest.skip(
             f"TheHive indisponível em {THEHIVE_URL} ou sem SADIF_THEHIVE_API_SERVICE "

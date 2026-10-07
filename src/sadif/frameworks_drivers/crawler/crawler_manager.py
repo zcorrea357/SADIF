@@ -1,5 +1,3 @@
-import json
-import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -9,12 +7,18 @@ from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError
 
 from sadif.config.sadif_config import SadifConfiguration
+from sadif.frameworks_drivers.crawler.crawler_data_export import export_documents, export_filename
+from sadif.frameworks_drivers.crawler.crawler_data_import import (
+    create_unique_url_indexes,
+    import_crawler_directory,
+)
 from sadif.frameworks_drivers.gitmanager import GitManager
 from sadif.frameworks_drivers.log_manager.sadif_log import LogManager
 
 
 class CrawlerManager:
     def __init__(self, db_client=None) -> None:
+        self.directory: str | None = None
         self.log_manager = LogManager()
         init_msg = "Initializing CrawlerManager"
         self.log_manager.log("info", init_msg, category="crawler_manager", task_state="running")
@@ -30,8 +34,17 @@ class CrawlerManager:
             if cloned_dir:
                 self.directory = cloned_dir
             else:
-                self.log_manager.log("error", "Error in cloning the Git repository")
-            self.db_client = db_client or MongoClient()
+                self.log_manager.log(
+                    "error",
+                    "Error in cloning the Git repository",
+                    category="crawler_manager",
+                    task_state="failed",
+                )
+            self.db_client = (
+                db_client
+                if db_client is not None
+                else MongoClient(self.sadif_internal_config.get_configuration("MONGODB_URL"))
+            )
             self.db = self.db_client[
                 self.sadif_internal_config.get_configuration("MONGODB_DATABASE_CRAWLER")
             ]
@@ -73,8 +86,7 @@ class CrawlerManager:
                 self.collection_without_credential_onion,
             ]
 
-            for collection in collections:
-                collection.create_index("url", unique=True)
+            create_unique_url_indexes(collections)
 
             indexes_msg = "Unique indexes created for all collections"
             self.log_manager.log(
@@ -97,7 +109,9 @@ class CrawlerManager:
             collection = self._determine_collection(url, document)
 
             if overwrite:
-                result = collection.update_one({"url": url}, {"$set": document}, upsert=True)
+                # O _id é imutável no MongoDB: não pode fazer parte do $set
+                fields = {key: value for key, value in document.items() if key != "_id"}
+                result = collection.update_one({"url": url}, {"$set": fields}, upsert=True)
                 action = "inserted" if result.upserted_id is not None else "updated"
                 doc_msg = f"Document with URL '{url}' {action}."
                 self.log_manager.log(
@@ -106,7 +120,8 @@ class CrawlerManager:
                 return result.upserted_id or result.matched_count
             else:
                 try:
-                    inserted_id = collection.insert_one(document).inserted_id
+                    # Insere uma cópia para não alterar (adicionar _id) o documento recebido
+                    inserted_id = collection.insert_one(dict(document)).inserted_id
                     insert_msg = f"Document with URL '{url}' inserted."
                     self.log_manager.log(
                         "info", insert_msg, category="crawler_manager", task_state="success"
@@ -121,15 +136,25 @@ class CrawlerManager:
         except Exception as e:
             fail_msg = "Failed to process document"
             self.log_manager.capture_exception(e, fail_msg, category="crawler_manager")
+            return None
 
     def _determine_collection(self, url: str, document: dict) -> Collection:
         task_state = "running"
         determ_msg = "Determining collection for URL"
         self.log_manager.log("info", determ_msg, category="crawler_manager", task_state=task_state)
-        parsed_url = urlparse(url)
+        if not isinstance(url, str):
+            msg = f"URL must be a string, got {type(url).__name__}"
+            raise TypeError(msg)
+        parsed_url = urlparse(url.strip())
+        if not parsed_url.hostname and "://" not in url:
+            # URLs sem esquema (ex.: 'exemplo.onion/path') não têm hostname no urlparse
+            parsed_url = urlparse(f"//{url.strip()}")
+        if not parsed_url.hostname:
+            msg = f"Invalid URL '{url}': hostname not found"
+            raise ValueError(msg)
         has_credentials = "auth_type" in document and bool(document["auth_type"])
 
-        if parsed_url.hostname.endswith(".onion"):
+        if parsed_url.hostname.rstrip(".").endswith(".onion"):
             return (
                 self.collection_with_credential_onion
                 if has_credentials
@@ -142,7 +167,15 @@ class CrawlerManager:
                 else self.collection_without_credential_web
             )
 
-    def get_all_documents_by_collection(self, collection_name: str = None) -> dict:
+    def _collections_by_name(self) -> dict[str, Collection]:
+        return {
+            "crawler_with_credential_web": self.collection_with_credential_web,
+            "crawler_without_credential_web": self.collection_without_credential_web,
+            "crawler_with_credential_onion": self.collection_with_credential_onion,
+            "crawler_without_credential_onion": self.collection_without_credential_onion,
+        }
+
+    def get_all_documents_by_collection(self, collection_name: str | None = None) -> dict | None:
         try:
             self.log_manager.log(
                 "info",
@@ -150,12 +183,7 @@ class CrawlerManager:
                 category="crawler_manager",
                 task_state="running",
             )
-            collections = {
-                "crawler_with_credential_web": self.collection_with_credential_web,
-                "crawler_without_credential_web": self.collection_without_credential_web,
-                "crawler_with_credential_onion": self.collection_with_credential_onion,
-                "crawler_without_credential_onion": self.collection_without_credential_onion,
-            }
+            collections = self._collections_by_name()
 
             # Verifica se um nome de coleção específico foi fornecido
             if collection_name and collection_name in collections:
@@ -192,150 +220,32 @@ class CrawlerManager:
             self.log_manager.capture_exception(
                 e, "Failed to fetch documents", category="crawler_manager"
             )
+            return None
 
-    def export_collections(self, export_dir: str):
-        task_state = "running"
-        try:
+    @staticmethod
+    def _export_filename(url: str) -> str:
+        return export_filename(url)
+
+    def export_collections(self, export_dir: str | Path) -> dict[str, int] | None:
+        return export_documents(
+            self.get_all_documents_by_collection(), export_dir, self.log_manager, "crawler_manager"
+        )
+
+    def import_collections(self, meta_update: bool = False) -> dict[str, list] | None:
+        if getattr(self, "db", None) is None:
             self.log_manager.log(
-                "info",
-                "Starting export of collections",
-                category="crawler_manager",
-                task_state=task_state,
-            )
-            all_documents = self.get_all_documents_by_collection()
-
-            export_dir_path = Path(export_dir)
-            export_dir_path.mkdir(parents=True, exist_ok=True)
-
-            for collection_name, documents in all_documents.items():
-                collection_dir = export_dir_path / collection_name
-                collection_dir.mkdir(parents=True, exist_ok=True)
-
-                for document in documents:
-                    url = document.get("url", "unknown")
-                    # Removendo protocolos e 'www' da URL
-                    simplified_url = re.sub(r"https?://", "", url)
-                    simplified_url = re.sub(r"www\.", "", simplified_url)
-                    # Substituindo caracteres não permitidos em nomes de arquivos
-                    filename = (
-                        simplified_url.replace(".", "_").replace("/", "_").replace(":", "_")
-                        + ".json"
-                    )
-                    with (collection_dir / filename).open("w") as file:
-                        json.dump(document, file)
-
-                self.log_manager.log(
-                    "info",
-                    f"Documents exported for collection {collection_name}",
-                    category="crawler_manager",
-                    task_state="running",
-                )
-
-            self.log_manager.log(
-                "info",
-                "Export completed successfully",
-                category="crawler_manager",
-                task_state="success",
-            )
-        except Exception as e:
-            self.log_manager.capture_exception(
-                e, "Failed to export collections", category="crawler_manager"
-            )
-
-    def import_collections(self, meta_update: bool = False):
-        imported_urls = []
-        ignored_urls = []  # Esta lista agora conterá tuplas de (nome do arquivo, motivo)
-
-        try:
-            if meta_update:
-                self.db_client.drop_database(self.db.name)
-                self.log_manager.log(
-                    level="info",
-                    message=f"Database '{self.db.name}' dropped for meta update.",
-                    category="crawler_manager",
-                    task_state="running",
-                )
-
-            import_dir_path = Path(self.directory)
-
-            for collection_dir in import_dir_path.iterdir():
-                if not collection_dir.is_dir() or not collection_dir.name.startswith("crawler_"):
-                    continue
-
-                collection_name = collection_dir.name
-                collection = self.db[collection_name]
-
-                if meta_update:
-                    self.log_manager.log(
-                        level="info",
-                        message=f"Collection '{collection_name}' deleted for meta update.",
-                        category="crawler_manager",
-                        task_state="running",
-                    )
-
-                for file_path in collection_dir.iterdir():
-                    if file_path.is_file():
-                        with file_path.open() as file:
-                            document = json.load(file)
-                            url = document.get("url", None)
-                            if not url:
-                                ignored_urls.append(
-                                    (file_path.name, "URL is needed to import file.")
-                                )
-                                continue
-
-                            try:
-                                collection.replace_one({"url": url}, document, upsert=True)
-                                imported_urls.append(url)
-                                self.log_manager.log(
-                                    level="info",
-                                    message=f"Monitoring url {url} inserted in {collection_name}.",
-                                    category="crawler_manager",
-                                    task_state="success",
-                                )
-                            except Exception as e:
-                                ignored_urls.append((file_path.name, str(e)))
-                                self.log_manager.log(
-                                    level="error",
-                                    message=f"Error inserting url {url} in {collection_name}: {e}",
-                                    category="crawler_manager",
-                                    task_state="failed",
-                                    exc_info=e,
-                                )
-
-            self.log_manager.log(
-                level="info",
-                message="Import completed successfully",
-                category="crawler_manager",
-                task_state="success",
-            )
-            if ignored_urls:
-                for ignored_url in ignored_urls:
-                    self.log_manager.log(
-                        level="warning",
-                        message=f"Ignored URL from file '{ignored_url[0]}': {ignored_url[1]}",
-                        category="crawler_manager",
-                        task_state="skipped",
-                    )
-            self.log_manager.log(
-                level="info",
-                message=f"Imported URLs: {len(imported_urls)}. Ignored URLs: {len(ignored_urls)}.",
-                category="crawler_manager",
-                task_state="skipped",
-            )
-        except FileNotFoundError as e:
-            self.log_manager.log(
-                level="error",
-                message="Cloned repository directory not found: " + str(e),
+                "error",
+                "Cannot import collections: CrawlerManager is not initialized",
                 category="crawler_manager",
                 task_state="failed",
-                exc_info=e,
             )
-        except Exception as e:
-            self.log_manager.log(
-                level="error",
-                message="Failed to import collections: " + str(e),
-                category="crawler_manager",
-                task_state="failed",
-                exc_info=e,
-            )
+            return None
+        return import_crawler_directory(
+            self.directory,
+            self.db_client,
+            self.db,
+            self._collections_by_name(),
+            self.log_manager,
+            "crawler_manager",
+            meta_update=meta_update,
+        )

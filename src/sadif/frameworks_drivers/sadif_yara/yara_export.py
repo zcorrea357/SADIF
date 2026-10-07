@@ -23,15 +23,19 @@ class YaraRulesExporter:
         if not Path(export_dir).exists():
             Path(export_dir).mkdir(parents=True)
 
-    def export_rules(self):
+    def export_rules(self) -> Path:
         """
         Exports Yara rules from the database to files in the specified directory.
         """
         zip_filename = Path(self.export_dir) / "YaraRulesExport.zip"
+        prefix_length = len(self.mongo_client_prefix)
         with zipfile.ZipFile(str(zip_filename), "w") as zipf:
             for collection in self.db.list_collection_names():
-                if collection.startswith(self.mongo_client_prefix):
-                    client_name = collection.split("_", 1)[1]
+                if (
+                    collection.startswith(self.mongo_client_prefix)
+                    and len(collection) > prefix_length
+                ):
+                    client_name = collection[prefix_length:]
                     client_dir = Path(self.export_dir) / client_name
                     if self.auto_extract and not client_dir.exists():
                         client_dir.mkdir(parents=True)
@@ -39,19 +43,22 @@ class YaraRulesExporter:
                     for rule in self.db[collection].find():
                         rule_name = rule.get("rule_name")
                         rule_content = rule.get("rule_content")
-                        rule_file_path = (
-                            client_dir / f"{rule_name}.yar"
-                            if self.auto_extract
-                            else Path(f"{client_name}/{rule_name}.yar")
-                        )
-
+                        if not rule_name or rule_content is None:
+                            self.logger.log(
+                                "warning",
+                                f"Invalid rule document ignored in {collection}",
+                                category="yara",
+                            )
+                            continue
+                        arcname = f"{client_name}/{rule_name}.yar"
                         if self.auto_extract:
-                            with rule_file_path.open("w") as file:
-                                file.write(rule_content)
-                        zipf.write(str(rule_file_path), str(rule_file_path))
+                            rule_file_path = client_dir / f"{rule_name}.yar"
+                            rule_file_path.write_text(rule_content, encoding="utf-8")
+                        zipf.writestr(arcname, rule_content)
                         self.logger.log(
                             "info", f"Rule {rule_name} exported to {client_name}", category="yara"
                         )
 
         self.logger.log("info", f"Rules exported to {zip_filename}", category="yara")
         print(f"Rules exported to {zip_filename}")
+        return zip_filename

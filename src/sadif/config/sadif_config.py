@@ -10,7 +10,7 @@ ENV_PREFIX = "SADIF_"
 
 
 class SadifConfiguration:
-    def __init__(self, config_file: str | None = None):
+    def __init__(self, config_file: str | os.PathLike | None = None):
         self.current_directory = Path(__file__).parent
         # Configura o caminho do arquivo JSON usando o parâmetro config_file, se fornecido
         self.json_file_path = Path(config_file) if config_file else config_variables_file
@@ -23,29 +23,39 @@ class SadifConfiguration:
         self.running_in_airflow = "AIRFLOW_HOME" in os.environ
 
     def _load_configurations(self):
-        if not self.running_in_airflow:
-            self._load_from_json_file()
+        # O JSON é sempre carregado: no Airflow ele serve de fallback quando a Variable
+        # não existe ou quando o Airflow não pode ser importado.
+        self._load_from_json_file()
 
     def _load_from_json_file(self):
-        if not self.json_file_path.exists():
+        if not self.json_file_path.is_file():
             logging.warning(f"JSON file not found: {self.json_file_path}")
             return
 
         try:
-            with self.json_file_path.open() as file:
-                self._configurations = json.load(file)
-        except json.JSONDecodeError as e:
+            with self.json_file_path.open(encoding="utf-8") as file:
+                configurations = json.load(file)
+        except (OSError, ValueError) as e:
             logging.exception(f"Error reading JSON file: {self.json_file_path}: {e}")
+            return
+        if not isinstance(configurations, dict):
+            logging.error(f"JSON file must contain an object: {self.json_file_path}")
+            return
+        self._configurations = configurations
+
+    @staticmethod
+    def _parse_value(value: str) -> Any:
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value
 
     def _get_from_environment(self, key: str) -> Any:
         # Variáveis SADIF_<CHAVE> sobrescrevem o JSON (ex.: SADIF_MONGODB_URL)
         value = os.environ.get(f"{ENV_PREFIX}{key}")
         if value is None:
             return None
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError:
-            return value
+        return self._parse_value(value)
 
     def get_configuration(self, key: str) -> Any:
         env_value = self._get_from_environment(key)
@@ -55,7 +65,13 @@ class SadifConfiguration:
             try:
                 from airflow.models import Variable
 
-                return Variable.get(key)
+                airflow_value = Variable.get(key, default_var=None)
+                if airflow_value is not None:
+                    return (
+                        self._parse_value(airflow_value)
+                        if isinstance(airflow_value, str)
+                        else airflow_value
+                    )
             except ImportError:
                 logging.warning("Airflow is not installed or cannot be found.")
             except Exception as e:
@@ -80,7 +96,8 @@ class SadifConfiguration:
             from airflow.models import Variable
 
             for key, value in self._configurations.items():
-                Variable.set(key, value)
+                # Listas/objetos são gravados como JSON para que get_configuration os restaure
+                Variable.set(key, value, serialize_json=not isinstance(value, str))
             logging.info("Airflow variables successfully updated.")
         except Exception as e:
             logging.exception(f"Error updating Airflow variables: {e}")

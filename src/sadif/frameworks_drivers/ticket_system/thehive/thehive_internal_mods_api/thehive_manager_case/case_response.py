@@ -28,6 +28,7 @@ class CaseResponse:
             response_data (dict): The response data from the API.
         """
         self.status_code = status_code
+        response_data = self._normalize(response_data)
         # If it's a successful response
         if self.is_success():
             self._id = response_data.get("_id")
@@ -87,14 +88,20 @@ class CaseResponse:
                 task_state="failed",
             )
 
+    def _normalize(self, response_data) -> dict:
+        """Return ``response_data`` as a dict (e.g. empty 204 body or a non-JSON error text)."""
+        if isinstance(response_data, dict):
+            return response_data
+        return {} if self.is_success() else {"message": response_data}
+
     def is_success(self):
         """
         Determines if the response was successful.
 
         Returns:
-            bool: True if the status code is 200, otherwise False.
+            bool: True if the status code is 2xx (e.g. 200 OK, 201 Created), otherwise False.
         """
-        return self.status_code == 200
+        return isinstance(self.status_code, int) and 200 <= self.status_code < 300
 
     def __str__(self):
         """

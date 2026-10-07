@@ -9,7 +9,12 @@ from sadif.frameworks_drivers.ticket_system.thehive.thehive_internal_mods_api.th
 
 class CaseLister:
     """
-    This class
+    Use case that lists TheHive cases (all pages) and filters them by tag.
+
+    Parameters
+    ----------
+    thehive_session : SessionThehive
+        An authenticated session to TheHive's API.
     """
 
     def __init__(self, thehive_session: SessionThehive):
@@ -19,10 +24,13 @@ class CaseLister:
     def list_cases(self):
         try:
             list_case = ListCase(self.thehive_session)
-            response, status = list_case.list_cases()
+            # range=all: sem ele o TheHive devolve só os 10 primeiros casos
+            response, status = list_case.list_cases(case_range="all")
 
-            if status == 200:
-                self.logmanager.log("info", "Cases listed successfully.")
+            if status == 200 and isinstance(response, list):
+                self.logmanager.log(
+                    "info", "Cases listed successfully.", category="thehive_case_listing"
+                )
                 return response
             else:
                 msg = f"Error while listing cases: Status {status}"
@@ -35,7 +43,7 @@ class CaseLister:
     def list_cases_by_tag(self, tag: str):
         try:
             all_cases = self.list_cases()
-            cases_with_tag = [case for case in all_cases if tag in case.get("tags", [])]
+            cases_with_tag = [case for case in all_cases if tag in (case.get("tags") or [])]
             self.logmanager.log(
                 "info", f"Cases filtered by tag: {tag}", category="thehive_case_filtering"
             )

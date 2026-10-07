@@ -35,8 +35,12 @@ class ClientManagerExport:
     """
 
     def __init__(self, db_client: MongoClientType | None = None):
-        self.client = db_client if db_client else MongoClient("localhost", 27017)
         self.sadif_internal_config = SadifConfiguration()
+        self.client = (
+            db_client
+            if db_client is not None
+            else MongoClient(self.sadif_internal_config.get_configuration("MONGODB_URL"))
+        )
         self.mongodb_client_prefix = self.sadif_internal_config.get_configuration(
             "MONGODB_CLIENT_PREFIX"
         )
@@ -66,7 +70,9 @@ class ClientManagerExport:
             Any exception that occurs during the export is logged and re-raised.
         """
         try:
-            collection_names = self.db.list_collection_names()
+            export_directory = Path(export_path)
+            export_directory.mkdir(parents=True, exist_ok=True)
+            collection_names = sorted(self.db.list_collection_names())
             for collection_name in collection_names:
                 collection = self.db[collection_name]
                 documents = list(
@@ -80,10 +86,10 @@ class ClientManagerExport:
                 )
 
                 # Creates a Path object for the JSON file
-                json_file_path = Path(export_path) / f"{collection_name}.json"
+                json_file_path = export_directory / f"{collection_name}.json"
 
                 # Writes the data to a JSON file using Path.open()
-                with json_file_path.open("w") as file:
+                with json_file_path.open("w", encoding="utf-8") as file:
                     file.write(json_data)
 
             self.log_manager.log(

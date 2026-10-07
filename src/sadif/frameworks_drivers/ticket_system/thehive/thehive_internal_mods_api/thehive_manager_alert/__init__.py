@@ -69,61 +69,69 @@ class Alert:
             dict: Os dados do alerta criado no TheHive
 
         Raises:
-            AssertionError: Se os tamanhos dos campos obrigatórios não estiverem dentro dos limites especificados.
+            AssertionError: Se os campos obrigatórios não forem strings dentro dos limites de tamanho
+                especificados, ou se severity (1-4), tlp (0-4) ou pap (0-3) forem inválidos.
         """
-        # Checando o tamanho dos campos obrigatórios
-        assert 1 <= len(alert_type) <= 32
-        assert 1 <= len(source) <= 32
-        assert 1 <= len(sourceRef) <= 128
-        assert 1 <= len(title) <= 512
-        assert len(description) <= 1048576
-
-        # Formando o payload
-        data = {
-            "type": alert_type,
-            "source": source,
-            "sourceRef": sourceRef,
-            "title": title,
-            "description": description,
-        }
         try:
-            if externalLink:
-                data["externalLink"] = externalLink
-            if severity:
-                data["severity"] = severity
-            if date:
-                data["date"] = date
-            if tags:
-                data["tags"] = tags
-            if flag:
-                data["flag"] = flag
-            if tlp:
-                data["tlp"] = tlp
-            if pap:
-                data["pap"] = pap
-            if customFields:
-                data["customFields"] = customFields
-            if summary:
-                data["summary"] = summary
-            if status:
-                data["status"] = status
-            if assignee:
-                data["assignee"] = assignee
-            if caseTemplate:
-                data["caseTemplate"] = caseTemplate
-            if observables:
-                data["observables"] = observables
-            if procedures:
-                data["procedures"] = procedures
+            # Checando o tamanho dos campos obrigatórios. Usa raise explícito (e não assert)
+            # para a validação não sumir com "python -O" e ser registrada no log abaixo.
+            self._check_length(alert_type, 1, 32, "alert_type")
+            self._check_length(source, 1, 32, "source")
+            self._check_length(sourceRef, 1, 128, "sourceRef")
+            self._check_length(title, 1, 512, "title")
+            self._check_length(description, 0, 1048576, "description")
+            self._check_choice(severity, (1, 2, 3, 4), "severity")
+            self._check_choice(tlp, (0, 1, 2, 3, 4), "tlp")
+            self._check_choice(pap, (0, 1, 2, 3), "pap")
+
+            # Formando o payload
+            data = {
+                "type": alert_type,
+                "source": source,
+                "sourceRef": sourceRef,
+                "title": title,
+                "description": description,
+            }
+            optional_fields = {
+                "externalLink": externalLink,
+                "severity": severity,
+                "date": date,
+                "tags": tags,
+                "flag": flag,
+                "tlp": tlp,
+                "pap": pap,
+                "customFields": customFields,
+                "summary": summary,
+                "status": status,
+                "assignee": assignee,
+                "caseTemplate": caseTemplate,
+                "observables": observables,
+                "procedures": procedures,
+            }
+            # "is not None" (e não truthiness): tlp=0 (TLP:CLEAR), pap=0 e flag=False são válidos.
+            # Listas/dicionários vazios continuam omitidos.
+            for key, value in optional_fields.items():
+                if value is None or (isinstance(value, list | dict | str) and not value):
+                    continue
+                data[key] = value
 
             response = self.session.create_alert(data)
 
-            self.logmanager.log(
-                "info",
-                "Alert created successfully in TheHive",
-                category="thehive_alert_creation",
-                task_state="success",
-            )
+            status_code = response[1] if isinstance(response, tuple) and len(response) == 2 else 0
+            if isinstance(status_code, int) and 200 <= status_code < 300:
+                self.logmanager.log(
+                    "info",
+                    f"Alert created successfully in TheHive: {sourceRef}",
+                    category="thehive_alert_creation",
+                    task_state="success",
+                )
+            else:
+                self.logmanager.log(
+                    "warning",
+                    f"TheHive did not create the alert {sourceRef}: {response}",
+                    category="thehive_alert_creation",
+                    task_state="failed",
+                )
             return response
 
         except AssertionError as e:
@@ -138,3 +146,16 @@ class Alert:
         except Exception as e:
             self.logmanager.capture_exception(e, "Exception occurred in Alert creation")
             raise
+
+    @staticmethod
+    def _check_length(value, min_len: int, max_len: int, name: str) -> None:
+        if not isinstance(value, str) or not min_len <= len(value) <= max_len:
+            length = len(value) if isinstance(value, str) else type(value).__name__
+            msg = f"{name} must be a string with {min_len}..{max_len} characters, got {length}"
+            raise AssertionError(msg)
+
+    @staticmethod
+    def _check_choice(value, choices: tuple, name: str) -> None:
+        if value is not None and (isinstance(value, bool) or value not in choices):
+            msg = f"Invalid {name} value: {value!r} (expected one of {choices})"
+            raise AssertionError(msg)

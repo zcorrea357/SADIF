@@ -91,6 +91,9 @@ class LogManager:
         "deferred",
         "removed",
     ]
+    LOG_LEVELS: ClassVar = ["debug", "info", "warning", "error", "critical"]
+    _sentry_dsn: ClassVar[Any] = None
+    _sentry_initialized: ClassVar[bool] = False
     ALLOWED_CATEGORIES_BRANDING: ClassVar = [
         "Name",
         "Country",
@@ -115,7 +118,13 @@ class LogManager:
         """
         self.sadif_config = SadifConfiguration()
 
-        sentry_sdk.init(dsn=self.sadif_config.get_configuration("SENTRYDSN"))
+        sentry_dsn = self.sadif_config.get_configuration("SENTRYDSN")
+        # Reinicializar o Sentry a cada instância descartaria o cliente anterior sem
+        # fechá-lo; só reinicializa quando o DSN configurado muda.
+        if not LogManager._sentry_initialized or LogManager._sentry_dsn != sentry_dsn:
+            sentry_sdk.init(dsn=sentry_dsn)
+            LogManager._sentry_dsn = sentry_dsn
+            LogManager._sentry_initialized = True
         log_format = "%(asctime)s - [%(levelname)s] - [%(name)s] - %(message)s - Source: %(filename)s:%(lineno)d"
         logging.basicConfig(level=log_level, format=log_format, datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -145,6 +154,17 @@ class LogManager:
             msg = f"Invalid task state: {state}. Allowed states are: {self.TASK_STATES}"
             raise ValueError(msg)
 
+    def _validate_level(self, level: str) -> str:
+        """
+        Validates the log level against LOG_LEVELS (case-insensitive) and returns it in lowercase.
+        Raises a ValueError if the level is not allowed.
+        """
+        normalized = level.lower() if isinstance(level, str) else level
+        if normalized not in self.LOG_LEVELS:
+            msg = f"Invalid log level: {level}. Allowed levels are: {self.LOG_LEVELS}"
+            raise ValueError(msg)
+        return normalized
+
     def log(
         self,
         level: str,
@@ -169,6 +189,7 @@ class LogManager:
         exc_info : Optional[Any]
             Additional exception information for error logs, defaults to None.
         """
+        level = self._validate_level(level)
         self._validate_category(category)
         self._validate_task_state(task_state)
 
@@ -176,11 +197,12 @@ class LogManager:
         logger = logging.getLogger(category)
 
         if level == "error" and exc_info:
-            logger.error(formatted_message, exc_info=exc_info)
-            sentry_sdk.capture_exception(exc_info)
-            sentry_sdk.set_tag("category", category)
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("category", category)
+                logger.error(formatted_message, exc_info=exc_info)
+                sentry_sdk.capture_exception(exc_info)
         else:
-            getattr(logger, level)(formatted_message)
+            getattr(logger, level)(formatted_message, exc_info=exc_info)
 
     def add_breadcrumb(self, category: str, message: str, level: str = "info"):
         """
@@ -195,6 +217,9 @@ class LogManager:
         level : str
             The severity level of the breadcrumb ('debug', 'info', 'warning', 'error', 'critical').
         """
+        if level not in [*self.LOG_LEVELS, "fatal"]:
+            msg = f"Invalid breadcrumb level: {level}. Allowed levels are: {[*self.LOG_LEVELS, 'fatal']}"
+            raise ValueError(msg)
         self._validate_category(category)
         sentry_sdk.add_breadcrumb(category=category, message=message, level=level)
 
@@ -214,6 +239,5 @@ class LogManager:
             The category for the log and Sentry tag, defaults to 'general'.
         """
         self._validate_category(category)
-        sentry_sdk.set_tag("category", category)
-        sentry_sdk.capture_exception(exception)
+        # log() registra a mensagem e envia a exceção ao Sentry com a tag da categoria
         self.log("error", message, exc_info=exception, category=category)
