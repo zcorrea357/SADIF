@@ -30,6 +30,7 @@ mkdocs-rss-plugin = "^1.12.2"
 mkdocstrings = "^0.25.0"
 mkdocstrings-python = "^1.10.0"
 griffe-typingdoc = "^0.2.5"
+pysocks = ">=1.7.1"
 
 [tool.poetry.group.test.dependencies]  # https://python-poetry.org/docs/master/managing-dependencies/
 commitizen = ">=3.21.3"

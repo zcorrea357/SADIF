@@ -65,6 +65,14 @@ repositórios git locais e um servidor HTTP local (`tests/e2e/conftest.py`), sem
 internet. As regras YARA de exemplo de cada cliente e tipo (`Vips`, `POC`, `Leak`, `Domino`,
 `Incidente`, `StringMatch`) ficam em `infra/fixtures/yara_rules/`.
 
+## Crawling de `.onion` (Tor)
+
+URLs `.onion` são acessadas pelo proxy SOCKS do Tor configurado em `TOR_PROXY`
+(padrão `socks5h://127.0.0.1:9050`, o Tor instalado localmente). Para testar sem acessar a
+rede Tor pública, `scripts/tor-testnet.sh start` sobe uma rede Tor privada local (Chutney)
+com um onion service que encaminha para `127.0.0.1:4747`; use o `SADIF_E2E_TOR_PROXY`
+gravado no `.env` como `SADIF_TOR_PROXY`.
+
 ## Configuração
 
 Os valores padrão ficam em `src/sadif/dataconfig/variables.json`. Qualquer chave pode ser

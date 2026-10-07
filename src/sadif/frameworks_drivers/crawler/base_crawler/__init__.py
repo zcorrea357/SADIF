@@ -161,9 +161,7 @@ class BaseCrawler:
                 return
             self.visited_urls.add(url)
         try:
-            response = self.session.get(
-                url, proxies={"http": self.proxy, "https": self.proxy}, timeout=self.timeout
-            )
+            response = self.session.get(url, proxies=self.proxies_for(url), timeout=self.timeout)
             if response.status_code >= 400:
                 self.error_urls.add(url)
                 self.log_manager.log(
@@ -199,6 +197,20 @@ class BaseCrawler:
                 f"Request error occurred while crawling {url}: {e}. Skipping...",
                 "network",
             )
+
+    def proxies_for(self, url: str) -> dict[str, str | None]:
+        """
+        Returns the proxies used to request ``url``.
+
+        The ``proxy`` given to the crawler is used for every URL. Without one, ``.onion``
+        URLs go through the Tor SOCKS proxy configured in ``TOR_PROXY``
+        (e.g. ``socks5h://127.0.0.1:9050``; ``socks5h`` lets Tor resolve the onion address).
+        """
+        proxy = self.proxy
+        hostname = urlparse(url).hostname or ""
+        if proxy is None and hostname.endswith(".onion"):
+            proxy = SadifConfiguration().get_configuration("TOR_PROXY")
+        return {"http": proxy, "https": proxy}
 
     def extract_links(self, content: str | bytes, current_url: str) -> set[str]:
         """
